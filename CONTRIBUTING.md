@@ -2,6 +2,8 @@
 
 First off — **thank you** for considering contributing to GitNest! This project is part of **GSSoC 2026** and we welcome contributors of all skill levels.
 
+**Please Fork and STAR the repo**
+
 Please read this guide fully before making your first contribution. It will save you time and avoid your PR being rejected.
 
 ---
@@ -256,7 +258,10 @@ Issues are tagged by difficulty. Points are awarded based on the label on the me
 
 | Label | Points |
 |---|---|
-|   |   |
+| beginner  | 20  |
+| intermediate  | 35  |
+| advanced  | 55  |
+| critical  | 80  |
 
 > Points are only awarded for PRs merged into the `dev` or `main` branch. Closed PRs or PRs fixing issues not tagged `gssoc26` do not count.
 
