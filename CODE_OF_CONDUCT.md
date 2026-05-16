@@ -1,4 +1,4 @@
-```md
+
 # Code of Conduct
 
 ## Our Pledge
@@ -125,4 +125,4 @@ This Code of Conduct applies to all GitNest community spaces, including:
 # Attribution
 
 This Code of Conduct is inspired by the Contributor Covenant and adapted for the GitNest open-source community.
-```
+
