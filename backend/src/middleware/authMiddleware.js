@@ -18,6 +18,9 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 
   try {
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is not defined in the environment variables');
+    }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = await User.findById(decoded.id).select('-password');
     next();
