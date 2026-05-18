@@ -1,0 +1,26 @@
+import { validationResult } from 'express-validator';
+import AppError from '../utils/AppError.js';
+
+/**
+ * Centralized validation result handler using express-validator
+ * Converts validation errors to structured format with field-level detail
+ * Prevents invalid payloads from reaching controllers
+ */
+const validateRequest = (req, res, next) => {
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    const formattedErrors = errors.array().map((error) => ({
+      field: error.param,
+      message: error.msg,
+    }));
+
+    const appError = new AppError('Validation failed', 400);
+    appError.errors = formattedErrors;
+    return next(appError);
+  }
+
+  next();
+};
+
+export default validateRequest;
