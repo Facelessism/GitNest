@@ -2,6 +2,8 @@ import Repository from '../models/Repository.model.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import AppError from '../utils/AppError.js';
 import { sendSuccess } from '../utils/responseHandlers.js';
+import { logActivity } from '../services/activity.service.js';
+import ACTIVITY_TYPES from '../constants/activityTypes.js';
 
 export const createRepository = asyncHandler(async (req, res, next)=> {
     const { name, description, visibility, language, topics } = req.body;
@@ -29,6 +31,20 @@ export const createRepository = asyncHandler(async (req, res, next)=> {
         language,
         topics,
     });
+
+    try {
+        await logActivity({
+            actor: req.user.id,
+            type: ACTIVITY_TYPES.REPOSITORY_CREATED,
+            repository: repository._id,
+            metadata: {
+                repoName: repository.name,
+                visibility: repository.visibility,
+            },
+        });
+    } catch {
+        // Prevent activity logging failures from blocking repository creation
+    }
 
     sendSuccess(res, 201, repository, 'Repository created successfully');
 });
@@ -127,7 +143,7 @@ export const starRepository = asyncHandler(async(req, res, next) => {
 
     const alreadyStarred = repository.stars.includes(req.user.id);
 
-    if(alreadyStarred) {
+    if (alreadyStarred) {
         repository.stars = repository.stars.filter(
             (id) => id.toString() !== req.user.id
         );
@@ -136,6 +152,21 @@ export const starRepository = asyncHandler(async(req, res, next) => {
     }
 
     await repository.save();
+
+    if (!alreadyStarred) {
+        try {
+            await logActivity({
+                actor: req.user.id,
+                type: ACTIVITY_TYPES.REPOSITORY_STARRED,
+                repository: repository._id,
+                metadata: {
+                    repoName: repository.name,
+                },
+            });
+        } catch {
+            // Prevent activity logging failures from blocking star actions
+        }
+    }
 
     const message = alreadyStarred
     ? 'Repository unstarred successfully'

@@ -13,6 +13,7 @@ import healthRoute from './routes/health.route.js';
 import AppError from './utils/AppError.js';
 import errorHandler from './middleware/errorHandler.js';
 import repositoryRoutes from './routes/repository.routes.js';
+import activityRoutes from './routes/activity.routes.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -28,6 +29,7 @@ app.use('/health', healthRoute);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/repositories', repositoryRoutes);
+app.use('/api/v1/activities', activityRoutes);
 app.use(errorHandler);
 
 // 404 handler - must come after all routes
