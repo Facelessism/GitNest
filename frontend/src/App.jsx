@@ -12,7 +12,7 @@ import NotFound from './pages/NotFound';
 import PullRequestsPage from './pages/PullRequestsPage';
 import PullRequestDetailPage from './pages/PullRequestDetailPage';
 import UserProfile from './pages/UserProfile';
-
+import ActivityFeedPage from './pages/ActivityFeed.jsx';
 
 const Dashboard = () => {
   const { user, logout } = useAuthStore();
@@ -54,6 +54,7 @@ function App() {
         <Route path="/" element={<GitNestHomepage />} />
         <Route path="/pull-requests" element={<PullRequestsPage />} />
         <Route path="/pull-requests/:id" element={<PullRequestDetailPage />} />
+        <Route path="/activities" element={<ActivityFeedPage />} />
         <Route path="/:username" element={<UserProfile />} />
 
         <Route element={<ProtectedRoute />}>

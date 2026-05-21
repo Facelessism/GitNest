@@ -3,6 +3,8 @@ import User from '../models/User.model.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import AppError from '../utils/AppError.js';
 import { sendSuccess } from '../utils/responseHandlers.js';
+import { logActivity } from '../services/activity.service.js';
+import ACTIVITY_TYPES from '../constants/activityTypes.js';
 
 /**
  * @desc    Get user profile by ID or username
@@ -81,12 +83,44 @@ export const updateProfile = asyncHandler(async (req, res, next) => {
   }
 
   // Update profile fields if provided in request body
-  if (bio !== undefined) user.bio = bio;
-  if (location !== undefined) user.location = location;
-  if (website !== undefined) user.website = website;
-  if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
+  const changedFields = [];
+
+  if (bio !== undefined && bio !== user.bio) {
+    user.bio = bio;
+    changedFields.push('bio');
+  }
+
+  if (location !== undefined && location !== user.location) {
+    user.location = location;
+    changedFields.push('location');
+  }
+
+  if (website !== undefined && website !== user.website) {
+    user.website = website;
+    changedFields.push('website');
+  }
+
+  if (avatarUrl !== undefined && avatarUrl !== user.avatarUrl) {
+    user.avatarUrl = avatarUrl;
+    changedFields.push('avatarUrl');
+  }
 
   await user.save();
+
+  if (changedFields.length > 0) {
+    try {
+      await logActivity({
+        actor: req.user.id,
+        type: ACTIVITY_TYPES.PROFILE_UPDATED,
+        targetUser: req.user.id,
+        metadata: {
+          changedFields,
+        },
+      });
+    } catch {
+      // Prevent activity logging failures from blocking profile updates
+    }
+  }
 
   sendSuccess(res, 200, user, 'Profile updated successfully');
 });
