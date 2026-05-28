@@ -4,6 +4,7 @@ if (!process.env.JWT_SECRET) {
 }
 
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import mongoSanitize from 'express-mongo-sanitize';
 import morgan from 'morgan';
@@ -21,6 +22,8 @@ import activityRoutes from './routes/activity.routes.js';
 const app = express();
 const PORT = process.env.PORT || 5000;
 connectDB();
+
+app.use(compression({ threshold: 1024 }));
 
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
