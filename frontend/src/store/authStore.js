@@ -1,6 +1,6 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { loginUser, registerUser, getMe } from '../api/authApi';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { loginUser, registerUser, getMe } from "../api/authApi";
 
 const extractUserData = (responseData) => {
   const payload = responseData?.data ?? responseData;
@@ -15,15 +15,15 @@ const extractUserData = (responseData) => {
 
 const extractErrorMessage = (error) => {
   if (error?.errors && Array.isArray(error.errors) && error.errors.length > 0) {
-    return error.errors.map((err) => err.message).join(', ');
+    return error.errors.map((err) => err.message).join(", ");
   }
-  return error?.message || fallback;
+  return error?.message || "An error occurred";
 };
 
 const getFriendlyAuthError = (error, fallbackMessage) => {
   const message = extractErrorMessage(error);
 
-  if (message && message !== 'An error occurred') {
+  if (message && message !== "An error occurred") {
     return message;
   }
 
@@ -167,6 +167,6 @@ export const useAuthStore = create(
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
-    }
-  )
+    },
+  ),
 );
