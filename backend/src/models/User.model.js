@@ -72,5 +72,7 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
+userSchema.index({ username: 'text', displayName: 'text', email: 'text', bio: 'text' });
+
 const User = mongoose.model('User', userSchema);
 export default User;

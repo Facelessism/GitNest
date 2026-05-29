@@ -17,6 +17,7 @@ import healthRoute from './routes/health.route.js';
 import commitHistoryRoutes from './routes/commitHistory.routes.js';
 import fileBrowserRoutes from './routes/fileBrowser.routes.js';
 import securityRoutes from './routes/security.routes.js';
+import searchRoutes from './routes/search.routes.js';
 import errorHandler from './middleware/errorHandler.js';
 import AppError from './utils/AppError.js';
 import swaggerSpec from './config/swagger.js';
@@ -87,6 +88,7 @@ const createApp = () => {
   app.use('/api/v1/users', userRoutes);
   app.use('/api/v1/activities', activityRoutes);
   app.use('/api/v1/pull-requests', pullRequestRoutes);
+  app.use('/api/v1/search', searchRoutes);
   app.use('/api/v1/repositories', commitHistoryRoutes);
   app.use('/api/v1/repositories', fileBrowserRoutes);
   app.use('/api/v1/repositories', securityRoutes);
