@@ -15,8 +15,10 @@ import generateToken from "../utils/generateToken.js";
 
 export const register = asyncHandler(async (req, res, next) => {
   const { username, email, password } = req.body;
+  console.log("BODY:", req.body);
 
   const userExists = await User.findOne({ $or: [{ email }, { username }] });
+  console.log("FOUND USER:", userExists);
 
   if (userExists) {
     return next(new AppError("User already exists", 400));

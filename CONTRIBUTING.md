@@ -274,6 +274,7 @@ Fill out the PR template completely. Incomplete PR descriptions will be sent bac
 - Use `AppError` for all operational errors with appropriate status codes
 - Validate all inputs using `express-validator` before hitting the controller
 - Use the `sendSuccess` / `sendPaginated` response helpers for consistent API responses
+- The `compression` middleware must remain the **first** middleware registered on the Express app — it must wrap all subsequent middleware including error handlers so that error responses are also compressed
 
 ### Backend Security Conventions
 

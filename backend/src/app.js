@@ -123,7 +123,6 @@ const createApp = () => {
     );
   });
 
-  // central error handler
   app.use(errorHandler);
 
   return app;

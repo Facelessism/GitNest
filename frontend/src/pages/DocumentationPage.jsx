@@ -235,9 +235,10 @@ const DocumentationPage = () => {
 
           <aside className={`
         fixed inset-y-0 left-0 z-[70] w-[280px] h-[100dvh] transform transition-transform duration-300 ease-out
-        lg:static lg:block lg:translate-x-0 lg:w-auto lg:h-fit lg:sticky lg:top-28
+        lg:fixed lg:inset-y-auto lg:top-28 lg:z-30 lg:block lg:translate-x-0 lg:w-[260px] lg:h-auto lg:max-h-[calc(100vh-8rem)]
+        lg:left-[max(1.5rem,calc((100vw-80rem)/2+1.5rem))]
         ${docsMenuOpen ? "translate-x-0" : "-translate-x-full"}
-        overflow-y-auto lg:overflow-visible
+        overflow-y-auto
         rounded-r-3xl lg:rounded-4xl
         border-r lg:border border-zinc-200 dark:border-white/5
         bg-white dark:bg-[#0a0d13] lg:bg-white/70 lg:dark:bg-white/3
@@ -279,7 +280,7 @@ const DocumentationPage = () => {
             </div>
           </aside>
 
-          <section className="space-y-6 lg:space-y-8 w-full max-w-full overflow-hidden">
+          <section className="space-y-6 lg:col-start-2 lg:space-y-8 w-full max-w-full overflow-hidden">
 
             <div className="relative overflow-hidden w-full rounded-[2rem] sm:rounded-[2.5rem] border border-zinc-200 dark:border-white/5 bg-gradient-to-br from-white via-[#f8fffc] to-white dark:from-[#11161d] dark:via-[#0c1015] dark:to-[#0d1218] p-6 sm:p-8 md:p-10 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
               <div className="absolute top-0 right-0 w-[20rem] h-[20rem] bg-[#00dc82]/10 blur-3xl rounded-full pointer-events-none" />
