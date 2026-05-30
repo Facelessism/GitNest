@@ -21,14 +21,20 @@ const serializePullRequest = (pullRequest) => {
   return { ...raw, id: String(raw._id), fromBranch: raw.fromBranch || raw.sourceBranch, toBranch: raw.toBranch || raw.targetBranch };
 };
 
-const resolveRepository = async (repositoryRef, repositoryId) => {
+const resolveRepository = async (repositoryRef, repositoryId, username) => {
   const ref = repositoryId || repositoryRef;
   if (!ref) throw new AppError('Repository is required', 400);
   if (mongoose.Types.ObjectId.isValid(ref)) {
     const byId = await Repository.findById(ref);
     if (byId) return byId;
   }
-  const repository = await Repository.findOne({ name: ref });
+  const query = { name: ref };
+  if (username) {
+    const owner = await User.findOne({ username: username.toLowerCase() });
+    if (!owner) throw new AppError('Repository not found', 404);
+    query.owner = owner._id;
+  }
+  const repository = await Repository.findOne(query);
   if (!repository) throw new AppError('Repository not found', 404);
   return repository;
 };
@@ -57,7 +63,14 @@ export const listPullRequests = asyncHandler(async (req, res) => {
   const { status = 'all', repository, search } = req.query;
   const filter = {};
   if (status !== 'all') filter.status = status;
-  if (repository) filter.repository = (await resolveRepository(repository))._id;
+  if (repository) {
+    const { username } = req.query;
+    if (!mongoose.Types.ObjectId.isValid(repository) && !username) {
+      throw new AppError('Repository name requires owner username to disambiguate', 400);
+    }
+    const resolved = await resolveRepository(repository, null, username);
+    filter.repository = resolved._id;
+  }
   if (search) filter.$text = { $search: search };
   const [pullRequests, totalCount, open, closed, merged] = await Promise.all([
     populatePullRequest(PullRequest.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit)),
@@ -78,7 +91,7 @@ export const getPullRequest = asyncHandler(async (req, res) => {
 });
 
 export const createPullRequest = asyncHandler(async (req, res) => {
-  const repository = await resolveRepository(req.body.repository, req.body.repositoryId);
+  const repository = await resolveRepository(req.body.repository, req.body.repositoryId, req.body.username);
   const lastPullRequest = await PullRequest.findOne({ repository: repository._id }).sort({ number: -1 }).select('number');
   const pullRequest = await PullRequest.create({
     number: (lastPullRequest?.number || 0) + 1,

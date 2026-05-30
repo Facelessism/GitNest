@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom';
 import logo from '../../assets/logo.png';
+import GlobalSearch from '../search/GlobalSearch.jsx';
 
 /**
  * Lightweight navigation shell that survives sectional content failures.
  */
 const MinimalPageNav = () => (
   <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/90 backdrop-blur-xl dark:border-zinc-800 dark:bg-[#06070a]/90">
-    <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8">
-      <Link to="/" className="flex items-center gap-2.5">
+    <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6 lg:px-8 gap-4">
+      <Link to="/" className="flex items-center gap-2.5 shrink-0">
         <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-zinc-200 bg-zinc-100 p-1 dark:border-zinc-700 dark:bg-white">
           <img src={logo} alt="GitNest" className="h-full w-full object-contain" />
         </div>
@@ -15,6 +16,10 @@ const MinimalPageNav = () => (
           Git<span className="text-emerald-500">Nest</span>
         </span>
       </Link>
+
+      <div className="hidden sm:block flex-1 max-w-xs">
+        <GlobalSearch />
+      </div>
 
       <nav className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-400">
         <Link to="/activities" className="transition hover:text-zinc-900 dark:hover:text-white">

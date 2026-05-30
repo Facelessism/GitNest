@@ -52,10 +52,11 @@ const repositorySchema = new mongoose.Schema(
         default: [],
     },
 },
-    { timestamps: true }  
+    { timestamps: true }
 );
 
 repositorySchema.index({ owner: 1, name: 1}, {unique: true});
+repositorySchema.index({ name: 'text', description: 'text', language: 'text', topics: 'text' });
 
 const Repository = mongoose.model('Repository', repositorySchema);
 export default Repository;

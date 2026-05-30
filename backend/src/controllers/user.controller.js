@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import mongoose from 'mongoose';
 import User from '../models/User.model.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import AppError from '../utils/AppError.js';
@@ -6,17 +7,46 @@ import { sendSuccess } from '../utils/responseHandlers.js';
 import paginate, { buildPaginationMeta } from '../utils/paginate.js';
 import SagaOrchestrator from '../services/saga/sagaOrchestrator.js';
 import eventEmitter from '../events/eventEmitter.js';
+import { getRedisClient } from '../config/redis.js';
 
 export const getUserProfile = asyncHandler(async (req, res, next) => {
   const { username } = req.params;
+  const cacheKey = `user:profile:${username}`;
+  const redis = getRedisClient();
 
-  const user = await User.findOne({ username: username.toLowerCase() });
+  if(redis) {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return sendSuccess(res, 200, JSON.parse(cached), 'User profile fetched successfully');
+    }
+  }
+
+  let user;
+
+  if(mongoose.Types.ObjectId.isValid(username)) {
+    user = await User.findById(username).lean();
+  }
+
+  if(!user) {
+    user = await User.findOne({ username: username.toLowerCase() }).lean();
+  }
 
   if (!user) {
     return next(new AppError('User not found', 404));
   }
 
-  sendSuccess(res, 200, user, 'User profile fetched successfully');
+  const userObj = {
+    ...user,
+    _id: user._id.toString(),
+    createdAt: new Date(user.createdAt).toISOString(),
+    updatedAt: new Date(user.updatedAt).toISOString(),
+  };
+
+  if (redis) {
+    await redis.set(cacheKey, JSON.stringify(userObj), 'EX', 60);
+  }
+
+  sendSuccess(res, 200, userObj, 'User profile fetched successfully');
 });
 
 // Follow a user with transaction-safe atomicity
