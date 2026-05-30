@@ -10,6 +10,7 @@
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
     "test:contracts": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config jest.contracts.config.js --runInBand",
     "test:saga": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config jest.saga.config.js --runInBand",
+    "test:pr-auth": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --config jest.prauth.config.js --runInBand",
     "contracts:snapshot": "node ../scripts/export-openapi.mjs src/docs/openapi.snapshot.json",
     "contracts:check": "node ../scripts/validate-openapi-compatibility.mjs src/docs/openapi.snapshot.json",
     "lint": "echo \"No linting configured\""
