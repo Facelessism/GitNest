@@ -3,15 +3,15 @@ import asyncHandler from "../utils/asyncHandler.js";
 import AppError from "../utils/AppError.js";
 import { sendSuccess } from "../utils/responseHandlers.js";
 import jwt from "jsonwebtoken";
-
-const generateToken = (id) => {
-  if (!process.env.JWT_SECRET) {
-    throw new Error("JWT_SECRET is not configured in environment");
-  }
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || "30d",
-  });
-};
+import generateToken from "../utils/generateToken.js";
+// const generateToken = (id) => {
+//   if (!process.env.JWT_SECRET) {
+//     throw new Error('JWT_SECRET is not configured in environment');
+//   }
+//   return jwt.sign({ id }, process.env.JWT_SECRET, {
+//     expiresIn: process.env.JWT_EXPIRE || '30d',
+//   });
+// };
 
 export const register = asyncHandler(async (req, res, next) => {
   const { username, email, password } = req.body;
