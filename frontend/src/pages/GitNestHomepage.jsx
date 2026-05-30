@@ -861,7 +861,7 @@ export default function GitNestHomepage() {
                 <div className="relative z-10 max-w-7xl mx-auto px-6">
 
                     {/* MAIN GRID */}
-                    <div className="grid md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-4 items-start">    
+                    <div className="grid md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-4 items-start">
                         {/* BRAND */}
                         <div>
 
@@ -963,6 +963,14 @@ export default function GitNestHomepage() {
 
                                     Terms & Conditions
                                 </Link>
+
+                                <Link
+                                    to="/contact"
+                                    className="group flex items-center gap-3 text-[16px] text-[#475569] hover:text-[#00b86b] transition-all duration-300"
+                                >
+                                    <div className="w-2 h-2 rounded-full bg-[#00c97b] group-hover:scale-150 transition-transform" />
+                                    Contact Us
+                                </Link>
                             </div>
                         </div>
 
@@ -998,16 +1006,16 @@ export default function GitNestHomepage() {
                                 ))}
                             </div>
 
-                        
+
                         </div>
                     </div>
                     <div className="mt-10 pt-6 border-t border-[#dce7e3] dark:border-zinc-800 flex justify-center items-center">
                         <p className="text-[15px] text-[#64748b] dark:text-zinc-400 ">
                             © 2026 GitNest. Built for open-source collaboration.
                         </p>
-                    </div> 
+                    </div>
                 </div>
-                
+
             </footer>
         </div>
 
