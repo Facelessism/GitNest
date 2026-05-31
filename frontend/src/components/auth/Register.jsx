@@ -14,6 +14,7 @@ import {
   Code2,
   Wand2,
   Shield,
+  ArrowLeft,
 } from "lucide-react";
 import logo from "../../assets/logo.png";
 
@@ -164,6 +165,22 @@ const Register = () => {
           }}
         />
       </div>
+
+      <div className="absolute top-6 left-6 z-20">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+          border border-zinc-200 dark:border-white/10
+          bg-white/80 dark:bg-zinc-900/80
+          backdrop-blur-md
+          text-zinc-700 dark:text-zinc-200
+          hover:bg-zinc-100 dark:hover:bg-zinc-800
+          transition-all duration-300 shadow-md hover:shadow-lg"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+      </div>   
+
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-10 items-center animate-fadeIn">
           {/* LEFT */}
