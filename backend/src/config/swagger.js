@@ -5,7 +5,9 @@ const json = (schema) => ({ content: { 'application/json': { schema } } });
 const errors = {
   400: { description: 'Validation error', ...json({ $ref: '#/components/schemas/ErrorEnvelope' }) },
   401: { description: 'Authentication error', ...json({ $ref: '#/components/schemas/ErrorEnvelope' }) },
+  403: { description: 'Forbidden', ...json({ $ref: '#/components/schemas/ErrorEnvelope' }) },
   404: { description: 'Not found', ...json({ $ref: '#/components/schemas/ErrorEnvelope' }) },
+  422: { description: 'Unprocessable entity', ...json({ $ref: '#/components/schemas/ErrorEnvelope' }) },
   500: { description: 'Server error', ...json({ $ref: '#/components/schemas/ErrorEnvelope' }) },
 };
 
@@ -57,6 +59,14 @@ const paths = {
   '/api/v1/repositories/{username}/{reponame}': { get: op(contracts.repositories.get), put: op(contracts.repositories.update), delete: op(contracts.repositories.remove) },
   '/api/v1/repositories/{username}/{reponame}/star': { post: op(contracts.repositories.star) },
   '/api/v1/repositories/{username}/{reponame}/fork': { post: op(contracts.repositories.fork) },
+  '/api/v1/repos/{username}/{reponame}/settings/branch-protection': {
+    get: op(contracts.branchProtection.list),
+    post: op(contracts.branchProtection.create),
+  },
+  '/api/v1/repos/{username}/{reponame}/settings/branch-protection/{ruleId}': {
+    put: op(contracts.branchProtection.update),
+    delete: op(contracts.branchProtection.remove),
+  },
   '/api/v1/activities/global': { get: op(contracts.activities.global) },
   '/api/v1/activities/user/{username}': { get: op(contracts.activities.user) },
   '/api/v1/activities/repository/{repo}': { get: op(contracts.activities.repository) },
@@ -66,6 +76,10 @@ const paths = {
   '/api/v1/pull-requests/{id}/close': { post: op(contracts.pullRequests.close) },
   '/api/v1/pull-requests/{id}/comments': { post: op(contracts.pullRequests.comment) },
   '/api/v1/pull-requests/{id}/reviews': { post: op(contracts.pullRequests.review) },
+  '/api/v1/repositories/{username}/{reponame}/index': { post: op(contracts.codeIntelligence.triggerIndex) },
+  '/api/v1/repositories/{username}/{reponame}/index/status/{indexId}': { get: op(contracts.codeIntelligence.indexStatus) },
+  '/api/v1/repositories/{username}/{reponame}/symbols/search': { get: op(contracts.codeIntelligence.searchSymbols) },
+  '/api/v1/repositories/{username}/{reponame}/symbols/{symbolId}': { get: op(contracts.codeIntelligence.symbolDetails) },
 };
 
 const definition = {
@@ -76,7 +90,7 @@ const definition = {
     description: 'Schema-driven API contract for GitNest MERN services.',
   },
   servers: [{ url: process.env.API_PUBLIC_URL || 'http://localhost:5000' }],
-  tags: ['Auth', 'Users', 'Repositories', 'Activities', 'Pull Requests'].map((name) => ({ name })),
+  tags: ['Auth', 'Users', 'Repositories', 'Activities', 'Pull Requests', 'Code Intelligence'].map((name) => ({ name })),
   components,
   paths,
 };

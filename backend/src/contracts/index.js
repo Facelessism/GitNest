@@ -74,6 +74,63 @@ const pullRequestBody = {
   },
 };
 
+const branchProtectionRule = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    _id: { type: 'string' },
+    id: { type: 'string' },
+    repositoryId: { type: 'string' },
+    branchPattern: { type: 'string' },
+    requirePullRequest: { type: 'boolean' },
+    requiredApprovalsCount: { type: 'integer', minimum: 0 },
+    requireStatusChecks: { type: 'boolean' },
+    createdAt: sharedSchemas.timestamp,
+    updatedAt: sharedSchemas.timestamp,
+  },
+  required: ['branchPattern'],
+};
+
+const branchProtectionRuleList = {
+  type: 'array',
+  items: branchProtectionRule,
+};
+
+const branchProtectionCreateBody = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    branchPattern: { type: 'string', minLength: 1, maxLength: 100 },
+    requirePullRequest: { type: 'boolean' },
+    requiredApprovalsCount: { type: 'integer', minimum: 0, maximum: 10 },
+    requireStatusChecks: { type: 'boolean' },
+  },
+  required: ['branchPattern'],
+};
+
+const branchProtectionUpdateBody = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    branchPattern: { type: 'string', minLength: 1, maxLength: 100 },
+    requirePullRequest: { type: 'boolean' },
+    requiredApprovalsCount: { type: 'integer', minimum: 0, maximum: 10 },
+    requireStatusChecks: { type: 'boolean' },
+  },
+  minProperties: 1,
+};
+
+const branchProtectionRuleIdParam = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    username: { type: 'string', minLength: 1, maxLength: 39 },
+    reponame: { type: 'string', minLength: 1, maxLength: 100 },
+    ruleId: { type: 'string', minLength: 1 },
+  },
+  required: ['username', 'reponame', 'ruleId'],
+};
+
 const idParam = {
   type: 'object',
   additionalProperties: true,
@@ -111,6 +168,50 @@ const searchQuery = {
     limit: { type: 'integer', minimum: 1, maximum: 50 },
   },
   required: ['q'],
+};
+
+const indexStatusParam = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    username: { type: 'string', minLength: 1, maxLength: 39 },
+    reponame: { type: 'string', minLength: 1, maxLength: 100 },
+    indexId: { type: 'string', minLength: 1 },
+  },
+  required: ['username', 'reponame', 'indexId'],
+};
+
+const symbolSearchQuery = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    q: { type: 'string', minLength: 1, maxLength: 100 },
+    symbolType: { type: 'string', enum: ['function', 'class', 'export', 'import', 'route'] },
+    page: { type: 'integer', minimum: 1 },
+    limit: { type: 'integer', minimum: 1, maximum: 50 },
+  },
+  required: ['q'],
+};
+
+const symbolDetailParam = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    username: { type: 'string', minLength: 1, maxLength: 39 },
+    reponame: { type: 'string', minLength: 1, maxLength: 100 },
+    symbolId: { type: 'string', minLength: 1 },
+  },
+  required: ['username', 'reponame', 'symbolId'],
+};
+
+const symbolSearchData = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    symbols: { type: 'array', items: sharedSchemas.indexedSymbol },
+    pagination: sharedSchemas.pagination,
+  },
+  required: ['symbols', 'pagination'],
 };
 
 export const contracts = {
@@ -151,14 +252,46 @@ export const contracts = {
     comment: { tags: ['Pull Requests'], security: [{ bearerAuth: [] }], request: { params: idParam, body: { type: 'object', additionalProperties: false, properties: { body: { type: 'string', minLength: 1 }, type: { type: 'string', enum: ['general', 'review'] } }, required: ['body'] } }, responses: { 201: sharedSchemas.successEnvelope(sharedSchemas.pullRequestComment) } },
     review: { tags: ['Pull Requests'], security: [{ bearerAuth: [] }], request: { params: idParam, body: { type: 'object', additionalProperties: false, properties: { action: { type: 'string', enum: ['approve', 'changes_requested', 'comment'] }, comment: { type: 'string' } }, required: ['action'] } }, responses: { 201: sharedSchemas.successEnvelope(sharedSchemas.review) } },
   },
+  branchProtection: {
+    list: {
+      tags: ['Repositories'],
+      security: [{ bearerAuth: [] }],
+      request: { params: sharedSchemas.repoParam },
+      responses: { 200: branchProtectionRuleList },
+    },
+    create: {
+      tags: ['Repositories'],
+      security: [{ bearerAuth: [] }],
+      request: { params: sharedSchemas.repoParam, body: branchProtectionCreateBody },
+      responses: { 201: branchProtectionRule },
+    },
+    update: {
+      tags: ['Repositories'],
+      security: [{ bearerAuth: [] }],
+      request: { params: branchProtectionRuleIdParam, body: branchProtectionUpdateBody },
+      responses: { 200: branchProtectionRule },
+    },
+    remove: {
+      tags: ['Repositories'],
+      security: [{ bearerAuth: [] }],
+      request: { params: branchProtectionRuleIdParam },
+      responses: { 200: { type: 'object', additionalProperties: false, properties: { deleted: { type: 'boolean' } }, required: ['deleted'] } },
+    },
+  },
   security: {
     scan: { tags: ['Security'], security: [{ bearerAuth: [] }], request: { params: sharedSchemas.repoParam }, responses: { 202: sharedSchemas.successEnvelope({ type: 'object', additionalProperties: true }) } },
     status: { tags: ['Security'], security: [{ bearerAuth: [] }], request: { params: { type: 'object', additionalProperties: true, properties: { username: { type: 'string', minLength: 1, maxLength: 39 }, reponame: { type: 'string', minLength: 1, maxLength: 100 }, scanId: { type: 'string', minLength: 1 } }, required: ['username', 'reponame', 'scanId'] } }, responses: { 200: sharedSchemas.successEnvelope({ type: 'object', additionalProperties: true }) } },
     events: { tags: ['Security'], security: [{ bearerAuth: [] }], request: { params: sharedSchemas.repoParam, query: { type: 'object', additionalProperties: true, properties: { page: { type: 'integer', minimum: 1 }, limit: { type: 'integer', minimum: 1, maximum: 50 }, severity: { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] }, type: { type: 'string', enum: ['SECRET_EXPOSED', 'VULNERABLE_DEPENDENCY', 'VERSION_MISMATCH', 'SUSPICIOUS_FILE'] }, scanId: { type: 'string' } } } }, responses: { 200: sharedSchemas.successEnvelope({ type: 'object', additionalProperties: true }) } },
+  },
   search: {
     global: { tags: ['Search'], request: { query: searchQuery }, responses: { 200: sharedSchemas.successEnvelope({ type: 'object', additionalProperties: true }) } },
   },
-},
+  codeIntelligence: {
+    triggerIndex: { tags: ['Code Intelligence'], security: [{ bearerAuth: [] }], request: { params: sharedSchemas.repoParam }, responses: { 202: sharedSchemas.successEnvelope({ type: 'object', additionalProperties: true }) } },
+    indexStatus: { tags: ['Code Intelligence'], security: [{ bearerAuth: [] }], request: { params: indexStatusParam }, responses: { 200: sharedSchemas.successEnvelope({ type: 'object', additionalProperties: true }) } },
+    searchSymbols: { tags: ['Code Intelligence'], request: { params: sharedSchemas.repoParam, query: symbolSearchQuery }, responses: { 200: sharedSchemas.successEnvelope(symbolSearchData) } },
+    symbolDetails: { tags: ['Code Intelligence'], request: { params: symbolDetailParam }, responses: { 200: sharedSchemas.successEnvelope(sharedSchemas.indexedSymbol) } },
+  },
 };
 
 export { components, sharedSchemas };

@@ -191,3 +191,142 @@ describe('GET /api/v1/auth/me', () => {
     expect(res.body.success).toBe(false);
   });
 });
+
+describe('Additional Registration Edge Cases', () => {
+  it('should reject extremely long username', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        username: 'a'.repeat(256),
+        email: 'longuser@gitnest.com',
+        password: 'Password123',
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('should reject password without numbers', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        username: 'nonumberuser',
+        email: 'nonumber@gitnest.com',
+        password: 'PasswordOnly',
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('should reject empty string fields', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        username: '',
+        email: '',
+        password: '',
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+});
+
+describe('Additional Login Edge Cases', () => {
+  it('should reject empty email and password', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: '',
+        password: '',
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('should reject login request with missing password', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: validUser.email,
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('should reject login request with missing email', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        password: validUser.password,
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+});
+
+describe('Additional Protected Route Security Tests', () => {
+  it('should reject authorization header without Bearer prefix', async () => {
+    const res = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', 'invalidtoken');
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('should reject empty Bearer token', async () => {
+    const res = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', 'Bearer ');
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('should reject completely malformed authorization header', async () => {
+    const res = await request(app)
+      .get('/api/v1/auth/me')
+      .set('Authorization', '###@@@');
+
+    expect(res.statusCode).toBe(401);
+    expect(res.body.success).toBe(false);
+  });
+});
+
+describe('Security & Response Validation', () => {
+  it('should not expose password in registration response', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        username: 'secureuser',
+        email: 'secureuser@gitnest.com',
+        password: 'Password123',
+      });
+
+    expect(res.body.data.password).toBeUndefined();
+  });
+
+  it('should not expose password in login response', async () => {
+    await request(app)
+      .post('/api/v1/auth/register')
+      .send({
+        username: 'secureloginuser',
+        email: 'securelogin@gitnest.com',
+        password: 'Password123',
+      });
+
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({
+        email: 'securelogin@gitnest.com',
+        password: 'Password123',
+      });
+
+    expect(res.body.data.password).toBeUndefined();
+  });
+});

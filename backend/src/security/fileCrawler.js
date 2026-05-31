@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-const IGNORED_DIRS = new Set(['.git', 'node_modules']);
+const IGNORED_DIRS = new Set(['.git', 'node_modules', 'dist', 'build']);
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB limit for safety
 
 // Simple utility to check if file is likely binary

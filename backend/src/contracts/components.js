@@ -209,6 +209,25 @@ const pullRequest = {
   required: ['title', 'status', 'sourceBranch', 'targetBranch'],
 };
 
+const indexedSymbol = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    _id: { type: 'string' },
+    repositoryId: { type: 'string' },
+    repositoryName: { type: 'string' },
+    owner: { type: 'string' },
+    filePath: { type: 'string' },
+    symbolName: { type: 'string' },
+    symbolType: { type: 'string', enum: ['function', 'class', 'export', 'import', 'route'] },
+    line: { type: 'integer', minimum: 1 },
+    exportName: { type: ['string', 'null'] },
+    metadata: { type: 'object', additionalProperties: true },
+    indexedAt: timestamp,
+  },
+  required: ['repositoryId', 'repositoryName', 'owner', 'filePath', 'symbolName', 'symbolType', 'line'],
+};
+
 export const components = {
   schemas: {
     SuccessEnvelope: successEnvelope({}),
@@ -223,6 +242,7 @@ export const components = {
     PullRequestComment: pullRequestComment,
     PullRequestReview: review,
     DiffFile: diffFile,
+    IndexedSymbol: indexedSymbol,
   },
   securitySchemes: {
     bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -246,4 +266,5 @@ export const sharedSchemas = {
   pullRequestComment,
   diffFile,
   review,
+  indexedSymbol,
 };

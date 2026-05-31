@@ -48,6 +48,7 @@ const pullRequestSchema = new mongoose.Schema(
     diff: { type: [diffFileSchema], default: [] },
     comments: { type: [commentSchema], default: [] },
     reviews: { type: [reviewSchema], default: [] },
+    mergedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     mergedAt: { type: Date, default: null },
     closedAt: { type: Date, default: null },
   },

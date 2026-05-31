@@ -45,7 +45,7 @@ export const useAuthStore = create(
             error: null,
           });
 
-          return res;
+          return userData;
         } catch (error) {
           set({ error: extractErrorMessage(error) });
           throw error;
@@ -75,8 +75,7 @@ export const useAuthStore = create(
             isAuthenticated: true,
             error: null,
           });
-
-          return res;
+          return userData;
         } catch (error) {
           set({ error: extractErrorMessage(error) });
           throw error;
