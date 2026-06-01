@@ -305,6 +305,30 @@ export const getUserProfile = asyncHandler(async (req, res, next) => {
 });
 ```
 
+**Route-level middleware ordering rule: rate limiters must come before validators.**
+
+Express executes route-level middleware strictly left-to-right. When a validator calls `next(error)`, Express skips every remaining middleware in the same route and jumps directly to the error handler. This means any middleware listed *after* a validator — including rate limiters — is never invoked for requests that fail validation.
+
+This is especially dangerous for brute-force protection: an attacker can send an unlimited volume of malformed login payloads (wrong email format, missing fields) and the rate limiter's counter is never incremented, because every request short-circuits at the validator.
+
+**Always register the rate limiter as the first middleware in the chain for any auth or state-changing public route:**
+
+```js
+// Correct — limiter fires on every request, including invalid ones
+router.post('/login', loginLimiter, validate(loginValidator), login);
+
+// Wrong — malformed requests bypass the counter entirely
+router.post('/login', validate(loginValidator), loginLimiter, login);
+```
+
+This rule applies to every endpoint where rate limiting is the primary abuse-prevention control: auth (login, register, password reset), OTP validation, and any public endpoint that mutates server state.
+
+**Use separate limiter instances for login and register.** A single shared `authLimiter` means exhausting the login quota also blocks legitimate registrations, and vice versa. Define distinct instances with different `windowMs` / `max` values matched to the threat model for each endpoint.
+
+**Trust proxy must be enabled when running behind a reverse proxy.** Without `app.set('trust proxy', 1)`, the rate limiter reads the proxy server's IP as the client address, meaning all users share a single counter and one user can lock out the entire service. Set `TRUST_PROXY=0` only when running Node directly without a proxy layer.
+
+---
+
 ### Frontend (React)
 
 - Use functional components with hooks only — no class components
