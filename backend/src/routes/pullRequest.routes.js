@@ -9,14 +9,17 @@ import {
   submitPullRequestReview,
   updatePullRequest,
 } from '../controllers/pullRequest.controller.js';
+import { protect, optionalProtect, requirePullRequestAccess } from '../middleware/authMiddleware.js';
 import { protect, requirePullRequestAccess } from '../middleware/authMiddleware.js';
 import schemaValidator from '../middleware/schemaValidator.js';
 import { contracts } from '../contracts/index.js';
 
 const router = express.Router();
 
-router.get('/', ...schemaValidator(contracts.pullRequests.list), listPullRequests);
-router.get('/:id', ...schemaValidator(contracts.pullRequests.detail), getPullRequest);
+// optionalProtect lets the handler know who is calling so visibility filtering
+// can include the authenticated user's private-repo PRs when a token is present
+router.get('/', optionalProtect, ...schemaValidator(contracts.pullRequests.list), listPullRequests);
+router.get('/:id', optionalProtect, ...schemaValidator(contracts.pullRequests.detail), getPullRequest);
 router.post('/', protect, ...schemaValidator(contracts.pullRequests.create), createPullRequest);
 
 // PR author or repo owner may update or close

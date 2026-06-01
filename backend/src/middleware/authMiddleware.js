@@ -38,29 +38,29 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 });
 
-export const optionalAuth = asyncHandler(async (req, res, next) => {
-  let token;
+/**
+ * Soft authentication — attaches req.user when a valid Bearer token is present
+ * but never rejects unauthenticated requests. Use this on read routes that need
+ * to vary their response based on the caller's identity without requiring login.
+ */
+export const optionalProtect = asyncHandler(async (req, _res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return next();
 
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    token = req.headers.authorization.split(' ')[1];
-  }
-
-  if (!token || !process.env.JWT_SECRET) {
-    return next();
-  }
-
+  const token = authHeader.split(' ')[1];
   try {
+    if (!process.env.JWT_SECRET) return next();
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id).select('-password');
+    if (user) req.user = user;
   } catch {
-    // Silently ignore invalid tokens
+    // Invalid or expired token — treat as unauthenticated, do not reject
   }
-
   next();
 });
+
+// Alias used by search routes — identical behaviour to optionalProtect
+export const optionalAuth = optionalProtect;
 
 /**
  * Resource-level authorization guard for pull request write operations.
