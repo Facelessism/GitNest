@@ -1,16 +1,12 @@
 import express from 'express';
-
-import { protect } from '../middleware/authMiddleware.js';
-
-import {
-  fetchCommitHistory,
-} from '../controllers/commitHistory.controller.js';
+import { fetchCommitHistory } from '../controllers/commitHistory.controller.js';
+import { optionalAuth } from '../middleware/optionalAuth.js';
 
 const router = express.Router();
 
 router.get(
-  '/:repoName/commits',
-  protect,
+  '/:username/:repoName/commits',
+  optionalAuth,
   fetchCommitHistory
 );
 
