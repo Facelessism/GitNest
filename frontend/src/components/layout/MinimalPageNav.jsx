@@ -46,6 +46,9 @@ const MinimalPageNav = () => {
           <Link to="/docs" className="transition hover:text-zinc-900 dark:hover:text-white">
             Docs
           </Link>
+          <Link to="/contact" className="transition hover:text-zinc-900 dark:hover:text-white">
+            Contact
+          </Link>
           <Link
             to="/login"
             className="rounded-full border border-zinc-300 px-3 py-1.5 text-xs font-medium transition hover:border-zinc-400 dark:border-zinc-700"

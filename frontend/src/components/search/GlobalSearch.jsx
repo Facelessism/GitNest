@@ -12,23 +12,7 @@ export default function GlobalSearch() {
   const [activeType, setActiveType] = useState('all');
   const [page, setPage] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
-  const timeoutIdRef = useRef(null);
   const addToast = useToastStore((state) => state.addToast);
-
-  useEffect(() => {
-    if (timeoutIdRef.current) {
-      clearTimeout(timeoutIdRef.current);
-    }
-    timeoutIdRef.current = window.setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 300);
-
-    return () => {
-      if (timeoutIdRef.current) {
-        clearTimeout(timeoutIdRef.current);
-      }
-    };
-  }, [searchQuery]);
 
   const { data: searchResults, isLoading, isError, error } = useQuery({
     queryKey: ['search', debouncedQuery, activeType, page],

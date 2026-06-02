@@ -46,7 +46,7 @@ function OAuthSuccess() {
     };
 
     exchangeCode();
-  }, []);
+  }, [navigate]);
 
   if (error) {
     return (

@@ -177,8 +177,60 @@ export const updateRepository = asyncHandler(async (req, res, next) => {
     return next(new AppError("Repository not found", 404));
   }
 
-  const { description, visibility, language, topics, defaultBranch } = req.body;
+  const { name, description, visibility, language, topics, defaultBranch } = req.body;
 
+  if (name && !/^[a-zA-Z0-9._-]+$/.test(name)) {
+    return next(
+      new AppError(
+        "Repository name contains invalid characters",
+        400
+      )
+    );
+  }
+  if (name && name !== repository.name) {
+    const existingRepo = await Repository.findOne({
+      owner: req.user.id,
+      name,
+    });
+
+    if (existingRepo) {
+      return next(
+        new AppError(
+          "You already have a repository with this name",
+          400
+        )
+      );
+    }
+
+    const oldRepoPath = path.resolve(
+      process.cwd(),
+      "repositories",
+      req.user.id,
+      repository.name
+    );
+
+    const newRepoPath = path.resolve(
+      process.cwd(),
+      "repositories",
+      req.user.id,
+      name
+    );
+
+    try {
+      if (fs.existsSync(oldRepoPath)) {
+        fs.renameSync(oldRepoPath, newRepoPath);
+      }
+    } catch {
+      return next(
+        new AppError(
+          "Failed to rename repository storage",
+          500
+        )
+      );
+    }
+
+    repository.name = name;
+  }
   repository.description = description ?? repository.description;
 
   repository.visibility = visibility ?? repository.visibility;
