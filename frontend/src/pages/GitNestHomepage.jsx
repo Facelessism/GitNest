@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useThemeStore } from '../store/useThemeStore';
 import {
     GitBranch,
@@ -18,6 +18,31 @@ import { Link } from 'react-router-dom';
 import logo from "../assets/logo.png";
 import { motion, AnimatePresence } from "framer-motion";
 import "../App.css";
+
+function Counter({ target, duration = 1500 }) {
+    const [count, setCount] = useState(0);
+
+    useEffect(() => {
+        let start = 0;
+
+        const increment = target / (duration / 16);
+
+        const timer = setInterval(() => {
+            start += increment;
+
+            if (start >= target) {
+                setCount(target);
+                clearInterval(timer);
+            } else {
+                setCount(Math.floor(start));
+            }
+        }, 16);
+
+        return () => clearInterval(timer);
+    }, [target, duration]);
+
+    return <>{count}</>;
+}
 
 export default function GitNestHomepage() {
     const [activeLink, setActiveLink] = useState(() => {
@@ -441,7 +466,7 @@ export default function GitNestHomepage() {
                                                 </div>
 
                                                 <div className="text-3xl font-black mb-2">
-                                                    {item.value}
+                                                    <Counter target={Number(item.value)} />
                                                 </div>
 
                                                 <div className="text-zinc-900 text-sm">
