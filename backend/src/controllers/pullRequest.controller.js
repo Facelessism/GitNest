@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import PullRequest from '../models/PullRequest.model.js';
 import Repository from '../models/Repository.model.js';
+import User from '../models/User.model.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import AppError from '../utils/AppError.js';
 import { sendSuccess } from '../utils/responseHandlers.js';
