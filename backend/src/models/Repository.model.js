@@ -17,6 +17,10 @@ const repositorySchema = new mongoose.Schema(
         default: '',
         trim: true,
     },
+    sourceUrl: {
+	type: String,
+	default: '',
+    },
     visibility: {
         type: String,
         enum: ['public', 'private'],
