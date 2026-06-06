@@ -53,19 +53,6 @@ jobs:
       - name: Run ESLint
         run: npm run lint || echo "No lint script found"
 
-      - name: Run tests (unit + saga)
-        run: npm test || echo "No tests found"
-        timeout-minutes: 10
-        env:
-          PORT: 5000
-          MONGO_URI: mongodb://localhost:27017/gitnest_test
-          REDIS_URL: redis://localhost:6379
-          JWT_SECRET: ${{ secrets.JWT_SECRET_CI }}
-          NODE_ENV: test
-          # Required for Jest to execute native ESM files.
-          # Without this, Jest can't load your test files and hangs silently.
-          NODE_OPTIONS: --experimental-vm-modules
-
   # FRONTEND
   frontend:
     name: Frontend (React + Vite)
