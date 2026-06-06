@@ -32,7 +32,9 @@ export default function ContactPage() {
     });
 
     const navLinks = [
-        { name: "Home", href: "/" },
+        { name: "Home", href: "/#home" },
+        { name: "Features", href: "/#features" },
+        { name: "Contributors", href: "/#contributors" },
     ];
 
     const handleChange = (e) => {
