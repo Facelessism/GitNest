@@ -226,6 +226,20 @@ export const mergePullRequest = asyncHandler(async (req, res, next) => {
     throw new AppError('Repository directory not found on disk', 500);
   }
 
+  // Evaluate branch protection rules before allowing the merge
+  const evalResult = await evaluateMerge({
+    repository,
+    pullRequest,
+    userId: req.user._id,
+  });
+
+  if (!evalResult.allowed) {
+    throw new AppError(
+      `Merge blocked by branch protection rules: ${evalResult.reasons.join(' ')}`,
+      403
+    );
+  }
+
   const sagaId = req.headers['idempotency-key'] || uuidv4();
   const prId = pullRequest._id.toString();
   const targetBranch = pullRequest.toBranch || pullRequest.targetBranch;
