@@ -228,6 +228,24 @@ const indexedSymbol = {
   required: ['repositoryId', 'repositoryName', 'owner', 'filePath', 'symbolName', 'symbolType', 'line'],
 };
 
+const dependencyGraph = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    _id: { type: 'string' },
+    repositoryId: { type: 'string' },
+    filePath: { type: 'string' },
+    sourceSymbol: { type: 'string' },
+    sourceType: { type: 'string' },
+    targetSymbol: { type: 'string' },
+    targetType: { type: 'string' },
+    dependencyType: { type: 'string' },
+    metadata: { type: 'object', additionalProperties: true },
+    createdAt: timestamp,
+  },
+  required: ['repositoryId', 'filePath', 'sourceSymbol', 'sourceType', 'targetSymbol', 'targetType', 'dependencyType'],
+};
+
 export const components = {
   schemas: {
     SuccessEnvelope: successEnvelope({}),
@@ -243,6 +261,7 @@ export const components = {
     PullRequestReview: review,
     DiffFile: diffFile,
     IndexedSymbol: indexedSymbol,
+    DependencyGraph: dependencyGraph,
   },
   securitySchemes: {
     bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -267,4 +286,5 @@ export const sharedSchemas = {
   diffFile,
   review,
   indexedSymbol,
+  dependencyGraph,
 };

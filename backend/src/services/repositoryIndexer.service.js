@@ -5,6 +5,7 @@ import sagaQueue from '../queue/sagaQueue.js';
 import { crawlRepositoryFiles } from '../security/fileCrawler.js';
 import IndexedSymbol from '../models/IndexedSymbol.model.js';
 import { extractSymbolsFromFiles } from './symbolExtractor.js';
+import { DependencyGraphBuilder, extractDependencyEdgesFromFiles } from './dependencyGraphBuilder.service.js';
 
 export const REPOSITORY_INDEX_TYPE = 'REPOSITORY_INDEX';
 
@@ -21,8 +22,9 @@ export const buildRepositoryIndexSteps = () => [
 
       const files = crawlRepositoryFiles(repoPath);
       const symbols = extractSymbolsFromFiles(files);
+      const dependencyEdges = extractDependencyEdgesFromFiles(files, symbols);
 
-      return { fileCount: files.length, symbols };
+      return { fileCount: files.length, symbols, dependencyEdges };
     },
   },
   {
@@ -50,10 +52,22 @@ export const buildRepositoryIndexSteps = () => [
         await IndexedSymbol.insertMany(documents, { session });
       }
 
-      return { symbolCount: documents.length, indexedAt, symbols: [] };
+      return { symbolCount: documents.length, indexedAt };
     },
     compensate: async (context, session) => {
       await IndexedSymbol.deleteMany({ repositoryId: context.repositoryId }, { session });
+    },
+  },
+  {
+    name: 'replace_dependency_graph',
+    execute: async (context, session) => {
+      const { repositoryId, dependencyEdges } = context;
+      const { edgeCount } = await DependencyGraphBuilder.replaceEdges({
+        repositoryId,
+        edges: dependencyEdges,
+        session,
+      });
+      return { dependencyEdgeCount: edgeCount, dependencyEdges: [], symbols: [] };
     },
   },
 ];
@@ -68,6 +82,8 @@ export const triggerRepositoryIndex = async ({ userId, repositoryId, repositoryN
     owner,
     fileCount: 0,
     symbolCount: 0,
+    dependencyEdgeCount: 0,
+    dependencyEdges: [],
     symbols: [],
   };
 

@@ -1,7 +1,6 @@
 import express from 'express';
-
 import { protect } from '../middleware/authMiddleware.js';
-
+import { optionalAuth } from '../middleware/optionalAuth.js';
 import {
   fetchBranches,
   createRepositoryBranch,
@@ -11,26 +10,28 @@ import {
 
 const router = express.Router();
 
+// Public read — anyone can list branches of a public repo
 router.get(
-  '/:repoName/branches',
-  protect,
+  '/:username/:repoName/branches',
+  optionalAuth,
   fetchBranches
 );
 
+// Protected write — only owner can create, checkout, delete
 router.post(
-  '/:repoName/branches',
+  '/:username/:repoName/branches',
   protect,
   createRepositoryBranch
 );
 
 router.post(
-  '/:repoName/branches/checkout',
+  '/:username/:repoName/branches/checkout',
   protect,
   checkoutRepositoryBranch
 );
 
 router.delete(
-  '/:repoName/branches/:branchName',
+  '/:username/:repoName/branches/:branchName',
   protect,
   deleteRepositoryBranch
 );

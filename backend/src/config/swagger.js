@@ -80,6 +80,10 @@ const paths = {
   '/api/v1/repositories/{username}/{reponame}/index/status/{indexId}': { get: op(contracts.codeIntelligence.indexStatus) },
   '/api/v1/repositories/{username}/{reponame}/symbols/search': { get: op(contracts.codeIntelligence.searchSymbols) },
   '/api/v1/repositories/{username}/{reponame}/symbols/{symbolId}': { get: op(contracts.codeIntelligence.symbolDetails) },
+  '/api/v1/repositories/{username}/{reponame}/dependencies/rebuild': { post: op(contracts.codeIntelligence.rebuildDependencies) },
+  '/api/v1/repositories/{username}/{reponame}/dependencies': { get: op(contracts.codeIntelligence.listDependencies) },
+  '/api/v1/repositories/{username}/{reponame}/dependencies/impact': { get: op(contracts.codeIntelligence.dependencyImpact) },
+  '/api/v1/repositories/{username}/{reponame}/dependencies/symbol/{symbolName}': { get: op(contracts.codeIntelligence.symbolDependencies) },
 };
 
 const definition = {
