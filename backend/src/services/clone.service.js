@@ -1,107 +1,167 @@
 import fs from 'fs';
 import path from 'path';
-import dns from 'dns';
-import simpleGit from 'simple-git';
+import { spawn } from 'child_process';
+import { logAuditEvent } from '../utils/logAuditEvent.js';
 
-// RFC-5735 / RFC-4193 private, loopback, link-local, and multicast ranges
-// that must never be the target of a server-side git clone.
-const BLOCKED_PREFIXES = [
-  '0.',
-  '10.',
-  '127.',
-  '169.254.',
-  '172.16.', '172.17.', '172.18.', '172.19.',
-  '172.20.', '172.21.', '172.22.', '172.23.',
-  '172.24.', '172.25.', '172.26.', '172.27.',
-  '172.28.', '172.29.', '172.30.', '172.31.',
-  '192.168.',
-  '198.18.', '198.19.',
-  '224.', '225.', '226.', '227.', '228.', '229.',
-  '230.', '231.', '232.', '233.', '234.', '235.',
-  '236.', '237.', '238.', '239.',
-  '240.',
-  '255.',
-];
+const ALLOWED_HOSTS = new Set([
+  'github.com',
+  'gitlab.com',
+  'bitbucket.org',
+]);
 
-const BLOCKED_EXACT = new Set(['::1', '::ffff:127.0.0.1', 'fe80']);
-
-/**
- * Resolves the hostname of the given URL to an IP address and throws if it
- * falls within any private / internal range. This prevents SSRF via git clone.
- *
- * @param {string} repositoryUrl - validated https:// URL
- * @throws {Error} when the resolved IP is an internal address
- */
-const assertNotInternalHost = async (repositoryUrl) => {
-  const { hostname } = new URL(repositoryUrl);
-
-  // Reject bare IP literals that match blocked prefixes before DNS
-  const isBlockedLiteral =
-    BLOCKED_PREFIXES.some((prefix) => hostname.startsWith(prefix)) ||
-    BLOCKED_EXACT.has(hostname.toLowerCase());
-
-  if (isBlockedLiteral) {
-    throw new Error('Cloning from internal or private network addresses is not allowed');
-  }
-
-  // Resolve hostname to IP and check again (catches DNS-rebinding and aliased
-  // hostnames that point to internal infrastructure)
-  let resolvedAddress;
-  try {
-    const { address } = await dns.promises.lookup(hostname);
-    resolvedAddress = address;
-  } catch {
-    throw new Error('Could not resolve repository hostname');
-  }
-
-  const isBlockedResolved =
-    BLOCKED_PREFIXES.some((prefix) => resolvedAddress.startsWith(prefix)) ||
-    BLOCKED_EXACT.has(resolvedAddress.toLowerCase());
-
-  if (isBlockedResolved) {
-    throw new Error('Cloning from internal or private network addresses is not allowed');
-  }
+const CONCURRENCY = {
+  perUser: new Map(),
+  global: 0,
 };
 
-export const cloneRepository = async (
-  repositoryUrl,
-  userId
-) => {
-  const urlPattern = /^https:\/\/.+\/.+\/.+(\\.git)?$/i;
+const MAX_PER_USER = 2;
+const MAX_GLOBAL = 10;
+const CLONE_TIMEOUT_MS = 60_000;
+const MIN_DISK_SPACE_BYTES = 1_073_741_824;
 
-  if (!urlPattern.test(repositoryUrl)) {
-    throw new Error('Invalid repository URL');
+function extractRepoName(url) {
+  const raw = url.split('/').pop().replace(/\.git$/i, '');
+  return raw.replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
+function isValidUrl(urlString) {
+  try {
+    const url = new URL(urlString);
+    if (url.protocol !== 'https:') return false;
+    const hostname = url.hostname.toLowerCase();
+    return ALLOWED_HOSTS.has(hostname) || ALLOWED_HOSTS.has(hostname.replace(/^www\./, ''));
+  } catch {
+    return false;
+  }
+}
+
+async function checkDiskSpace(repoPath) {
+  return new Promise((resolve, reject) => {
+    const isWin = process.platform === 'win32';
+    if (isWin) {
+      const drive = path.parse(repoPath).root;
+      const child = spawn('cmd.exe', ['/c', 'fsutil', 'volume', 'diskfree', drive]);
+      let stdout = '';
+      let stderr = '';
+      child.stdout.on('data', (d) => { stdout += d; });
+      child.stderr.on('data', (d) => { stderr += d; });
+      child.on('close', (code) => {
+        if (code !== 0) return reject(new Error(stderr || 'Disk check failed'));
+        const match = stdout.match(/Available\s+bytes\s*:\s+(\d+)/i);
+        if (!match) return reject(new Error('Could not parse disk space'));
+        resolve(BigInt(match[1]));
+      });
+    } else {
+      const child = spawn('df', ['-k', '--output=avail', path.resolve(repoPath, '..')]);
+      let stdout = '';
+      child.stdout.on('data', (d) => { stdout += d; });
+      child.on('close', (code) => {
+        if (code !== 0) return reject(new Error('Disk check failed'));
+        const lines = stdout.trim().split('\n');
+        const kb = parseInt(lines[lines.length - 1], 10);
+        if (isNaN(kb)) return reject(new Error('Could not parse disk space'));
+        resolve(BigInt(kb) * 1024n);
+      });
+    }
+  });
+}
+
+function checkConcurrency(userId) {
+  const userCount = CONCURRENCY.perUser.get(userId) || 0;
+  if (userCount >= MAX_PER_USER) {
+    throw new Error(`Maximum concurrent clones per user (${MAX_PER_USER}) reached`);
+  }
+  if (CONCURRENCY.global >= MAX_GLOBAL) {
+    throw new Error(`Maximum global concurrent clones (${MAX_GLOBAL}) reached`);
+  }
+}
+
+function incrementConcurrency(userId) {
+  CONCURRENCY.perUser.set(userId, (CONCURRENCY.perUser.get(userId) || 0) + 1);
+  CONCURRENCY.global += 1;
+}
+
+function decrementConcurrency(userId) {
+  const current = CONCURRENCY.perUser.get(userId) || 0;
+  if (current <= 1) {
+    CONCURRENCY.perUser.delete(userId);
+  } else {
+    CONCURRENCY.perUser.set(userId, current - 1);
+  }
+  CONCURRENCY.global -= 1;
+}
+
+function cloneWithSpawn(repoUrl, repoPath) {
+  return new Promise((resolve, reject) => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      cancelled = true;
+      proc.kill('SIGKILL');
+      reject(new Error('Clone timed out'));
+    }, CLONE_TIMEOUT_MS);
+
+    const proc = spawn('git', ['clone', repoUrl, repoPath], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let stderr = '';
+    proc.stderr.on('data', (d) => { stderr += d; });
+
+    proc.on('close', (code) => {
+      clearTimeout(timer);
+      if (cancelled) return;
+      if (code !== 0) {
+        return reject(new Error(`git clone failed: ${stderr.trim() || 'unknown error'}`));
+      }
+      resolve();
+    });
+
+    proc.on('error', (err) => {
+      clearTimeout(timer);
+      if (!cancelled) reject(err);
+    });
+  });
+}
+
+export const cloneRepository = async (repositoryUrl, userId, ipAddress) => {
+  if (!isValidUrl(repositoryUrl)) {
+    throw new Error('Invalid or disallowed repository URL');
   }
 
-  // SSRF guard — must run before any network activity
-  await assertNotInternalHost(repositoryUrl);
+  checkConcurrency(userId);
+  const repoName = extractRepoName(repositoryUrl);
+  if (!repoName) {
+    throw new Error('Could not extract a valid repository name from the URL');
+  }
 
-  const repoName = repositoryUrl
-    .split('/')
-    .pop()
-    .replace(/\.git$/i, '');
+  const repoPath = path.resolve(process.cwd(), 'repositories', userId, repoName);
+  const available = await checkDiskSpace(repoPath);
+  if (available < MIN_DISK_SPACE_BYTES) {
+    throw new Error(`Insufficient disk space: ${(Number(available) / 1_073_741_824).toFixed(2)} GB available, ${(MIN_DISK_SPACE_BYTES / 1_073_741_824).toFixed(0)} GB required`);
+  }
 
-  const repoPath = path.resolve(
-    process.cwd(),
-    'repositories',
-    userId,
-    repoName
-  );
+  incrementConcurrency(userId);
+  fs.mkdirSync(path.dirname(repoPath), { recursive: true });
 
-  fs.mkdirSync(
-    path.dirname(repoPath),
-    { recursive: true }
-  );
+  try {
+    await cloneWithSpawn(repositoryUrl, repoPath);
+  } catch (err) {
+    decrementConcurrency(userId);
+    throw err;
+  }
 
-  const git = simpleGit();
+  decrementConcurrency(userId);
 
-  await git.clone(
-    repositoryUrl,
-    repoPath
-  );
+  await logAuditEvent({
+    actorId: userId,
+    actionType: 'repo.clone',
+    ipAddress,
+    metadata: { repositoryUrl, repoName, repoPath },
+  });
 
-  return {
-    repoName,
-    repoPath,
-  };
+  return { repoName, repoPath };
+};
+
+export const releaseCloneLock = (userId) => {
+  decrementConcurrency(userId);
 };
