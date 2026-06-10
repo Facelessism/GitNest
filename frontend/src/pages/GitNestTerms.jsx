@@ -304,53 +304,84 @@ export default function GitNestTerms() {
             </section>
 
             {/* FOOTER */}
-            <footer className="relative overflow-hidden border-t border-[#dce7e3] dark:border-white/10 bg-[#f8fbfa] dark:bg-[#080b11] py-20">
+            <footer className="relative overflow-hidden border-t border-[#dce7e3] bg-[#f8fbfa] dark:bg-[#080b11] py-14">
+
+                {/* BACKGROUND EFFECTS */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
+
+                    {/* TOP GRADIENT */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[220px] bg-gradient-to-r from-[#00dc82]/10 via-[#4fd1ff]/10 to-[#d9f99d]/10 blur-3xl rounded-full" />
+
+                    {/* LEFT GLOW */}
                     <div className="absolute left-[-80px] bottom-0 w-[240px] h-60 bg-[#4fd1ff]/10 blur-3xl rounded-full" />
+
+                    {/* RIGHT GLOW */}
                     <div className="absolute right-[-80px] top-0 w-[240px] h-60 bg-[#00dc82]/10 blur-3xl rounded-full" />
                 </div>
 
                 <div className="relative z-10 max-w-7xl mx-auto px-6">
-                    <div className="grid md:grid-cols-4 gap-16">
+
+                    {/* MAIN GRID */}
+                    <div className="grid md:grid-cols-[1.4fr_1fr_1fr_1fr] gap-4 items-start">
                         {/* BRAND */}
-                        <div className="md:col-span-2">
+                        <div>
+
                             <div className="flex items-center gap-4 mb-7">
-                                <div className="w-14 h-14 rounded-[20px] bg-white border border-[#e4ece8] dark:border-white/10 shadow-[0_10px_30px_rgba(15,23,42,0.06)] flex items-center justify-center overflow-hidden p-2">
-                                    <img src={logo} alt="GitNest Logo" className="w-full h-full object-contain" />
+
+                                {/* LOGO */}
+                                <div className="w-14 h-14 rounded-[20px] bg-white border border-[#e4ece8] shadow-[0_10px_30px_rgba(15,23,42,0.06)] flex items-center justify-center overflow-hidden p-2">
+
+                                    <img
+                                        src={logo}
+                                        alt="GitNest Logo"
+                                        className="w-full h-full object-contain"
+                                    />
                                 </div>
+
+                                {/* TITLE */}
                                 <div>
                                     <h3 className="font-black text-[34px] leading-none tracking-[-0.05em] text-[#071138] dark:text-white">
                                         Git<span className="text-[#00c97b]">Nest</span>
                                     </h3>
+
                                     <p className="text-[12px] uppercase tracking-[0.24em] text-[#7c8aa5] font-medium mt-1">
                                         Open Source Platform
                                     </p>
                                 </div>
                             </div>
+
+                            {/* DESCRIPTION */}
                             <p className="text-[17px] leading-9 text-[#64748b] dark:text-zinc-400 max-w-sm mb-8">
                                 A modern collaborative development platform inspired by GitHub and built for open source communities worldwide.
                             </p>
-                            <p className="text-[15px] text-[#7c8aa5] leading-7">
-                                © 2026 GitNest. Built for open-source collaboration.
-                            </p>
+
                         </div>
 
                         {/* PLATFORM */}
                         <div>
-                            <h4 className="text-[28px] font-black tracking-[-0.04em] text-[#071138] dark:text-white mb-8">
+
+                            <h4 className="text-[22px] font-black tracking-[-0.04em] text-[#071138] dark:text-white mb-8 ">
                                 Platform
                             </h4>
-                            <div className="space-y-5">
+
+                            <div className="space-y-5 text-[#64748b] dark:text-zinc-400">
+
                                 {[
                                     "Repositories",
                                     "Pull Requests",
                                     "AI Workflows",
                                     "Discussions",
                                 ].map((item) => (
-                                    <a key={item} href="#" className="group flex items-center gap-3 text-[17px] text-[#475569] dark:text-zinc-400 hover:text-[#00b86b] dark:hover:text-[#00dc82] transition-all duration-300">
+                                    <a
+                                        key={item}
+                                        href="#"
+                                        className="group flex items-center gap-3 text-[17px] text-[#64748b] dark:text-zinc-400 hover:text-[#00b86b] transition-all duration-300"
+                                    >
+
                                         <div className="w-2 h-2 rounded-full bg-[#00c97b] group-hover:scale-150 transition-transform" />
+
                                         {item}
+
                                     </a>
                                 ))}
                             </div>
@@ -358,25 +389,94 @@ export default function GitNestTerms() {
 
                         {/* DEVELOPERS */}
                         <div>
-                            <h4 className="text-[28px] font-black tracking-[-0.04em] text-[#071138] dark:text-white mb-8">
+
+                            <h4 className="text-[22px] font-black tracking-[-0.04em] text-[#071138] dark:text-white mb-8">
                                 Developers
                             </h4>
-                            <div className="space-y-5">
+
+                            <div className="space-y-3">
+
                                 {[
                                     "Contribution Guide",
                                     "Roadmap",
                                     "API Docs",
                                     "Architecture",
                                 ].map((item) => (
-                                    <a key={item} href="#" className="group flex items-center gap-3 text-[17px] text-[#475569] dark:text-zinc-400 hover:text-[#00b86b] dark:hover:text-[#00dc82] transition-all duration-300">
+                                    <a
+                                        key={item}
+                                        href="#"
+                                        className="group flex items-center gap-3 text-[17px] text-[#64748b] dark:text-zinc-400 hover:text-[#00b86b] transition-all duration-300"
+                                    >
+
                                         <div className="w-2 h-2 rounded-full bg-[#00c97b] group-hover:scale-150 transition-transform" />
+
                                         {item}
+
                                     </a>
                                 ))}
+
+                                {/* LEGAL LINK */}
+                                <Link
+                                    to="/terms"
+                                    className="group flex items-center gap-3 text-[16px] text-[#475569] hover:text-[#00b86b] transition-all duration-300"
+                                >
+                                    <div className="w-2 h-2 rounded-full bg-[#00c97b] group-hover:scale-150 transition-transform" />
+
+                                    Terms & Conditions
+                                </Link>
+
+                                <Link
+                                    to="/contact"
+                                    className="group flex items-center gap-3 text-[16px] text-[#475569] hover:text-[#00b86b] transition-all duration-300"
+                                >
+                                    <div className="w-2 h-2 rounded-full bg-[#00c97b] group-hover:scale-150 transition-transform" />
+                                    Contact Us
+                                </Link>
                             </div>
                         </div>
+
+                        {/* TECH STACK */}
+                        <div >
+
+                            <h4 className="text-[22px] font-black tracking-[-0.04em] text-[#071138] dark:text-white mb-8 text-centre flex flex-col items-center">
+                                Tech Stack
+                            </h4>
+
+                            {/* <div className="flex flex-wrap gap-4 items-start"> */}
+                            <div className="grid grid-cols-2 gap-4 ">
+                                {[
+                                    "React",
+                                    "Tailwind",
+                                    "Node.js",
+                                    "MongoDB",
+                                    "Express",
+                                    "Socket.io",
+                                    "JWT",
+                                    "AI",
+                                ].map((tech) => (
+                                    <div
+                                        key={tech}
+                                        className="w-full px-4 py-3 rounded-2xl border border-[#e6ece9] bg-white shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 text-[15px] font-medium text-[#334155] flex items-center gap-3 justify-center"
+                                    >
+
+                                        <div className="w-2 h-2 min-w-[8px] min-h-[8px] rounded-full bg-[#00c97b]" />
+
+                                        {tech}
+
+                                    </div>
+                                ))}
+                            </div>
+
+
+                        </div>
+                    </div>
+                    <div className="mt-10 pt-6 border-t border-[#dce7e3] dark:border-zinc-800 flex justify-center items-center">
+                        <p className="text-[15px] text-[#64748b] dark:text-zinc-400 ">
+                            © 2026 GitNest. Built for open-source collaboration.
+                        </p>
                     </div>
                 </div>
+
             </footer>
         </div>
     );

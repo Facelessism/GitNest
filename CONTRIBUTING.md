@@ -21,6 +21,7 @@ First of all — **Thank you** for considering contributing to GitNest! This pro
 - [Commit Message Format](#commit-message-format)
 - [Pull Request Guidelines](#pull-request-guidelines)
 - [Coding Standards](#coding-standards)
+- [Backend Security Conventions](#backend-security-conventions)
 - [GSSoC Points System](#gssoc-points-system)
 - [Getting Help](#getting-help)
 
@@ -273,6 +274,60 @@ Fill out the PR template completely. Incomplete PR descriptions will be sent bac
 - Use `AppError` for all operational errors with appropriate status codes
 - Validate all inputs using `express-validator` before hitting the controller
 - Use the `sendSuccess` / `sendPaginated` response helpers for consistent API responses
+- The `compression` middleware must remain the **first** middleware registered on the Express app — it must wrap all subsequent middleware including error handlers so that error responses are also compressed
+
+### Backend Security Conventions
+
+These rules exist to prevent a class of bugs that look harmless in isolation but create serious attack surface when combined with predictable identifier formats.
+
+**Public routes must never accept internal database IDs as route parameters.**
+
+- Use only human-readable identifiers — `:username`, `:repoName` — on any route that is accessible without authentication or whose response exposes user data.
+- MongoDB ObjectIds encode the server's startup timestamp in their first four bytes, making sequential enumeration of all registered users or repositories feasible with a modest number of requests. Accepting an ObjectId on a public route therefore leaks the full user table to an unauthenticated caller.
+- If an internal service, background job, or admin tool needs to look up a document by `_id`, it must call the Mongoose model directly — `User.findById(id)` — rather than routing that call through a public HTTP endpoint.
+
+**All route parameters must pass through a validator before the controller uses them.**
+
+- The existing `express-validator` chain documented above applies to body fields. The same requirement holds for `:param` values: every public route must declare a `param()` validator that rejects unexpected shapes (ObjectId-like hex strings, oversized values, characters outside the allowed set) before the request reaches the controller.
+- Placing validation only in the controller, or checking `mongoose.Types.ObjectId.isValid()` inside the controller, is not sufficient — it mixes input sanitisation with business logic and makes the sanitisation easy to bypass by future edits.
+
+**Example — correct pattern for a username lookup route:**
+
+```js
+// router
+router.get('/:username', validate(usernameParamValidator), getUserProfile);
+
+// controller — queries only by the human-readable field
+export const getUserProfile = asyncHandler(async (req, res, next) => {
+  const user = await User.findOne({ username: req.params.username.toLowerCase() });
+  if (!user) return next(new AppError('User not found', 404));
+  sendSuccess(res, 200, user, 'User profile fetched successfully');
+});
+```
+
+**Route-level middleware ordering rule: rate limiters must come before validators.**
+
+Express executes route-level middleware strictly left-to-right. When a validator calls `next(error)`, Express skips every remaining middleware in the same route and jumps directly to the error handler. This means any middleware listed *after* a validator — including rate limiters — is never invoked for requests that fail validation.
+
+This is especially dangerous for brute-force protection: an attacker can send an unlimited volume of malformed login payloads (wrong email format, missing fields) and the rate limiter's counter is never incremented, because every request short-circuits at the validator.
+
+**Always register the rate limiter as the first middleware in the chain for any auth or state-changing public route:**
+
+```js
+// Correct — limiter fires on every request, including invalid ones
+router.post('/login', loginLimiter, validate(loginValidator), login);
+
+// Wrong — malformed requests bypass the counter entirely
+router.post('/login', validate(loginValidator), loginLimiter, login);
+```
+
+This rule applies to every endpoint where rate limiting is the primary abuse-prevention control: auth (login, register, password reset), OTP validation, and any public endpoint that mutates server state.
+
+**Use separate limiter instances for login and register.** A single shared `authLimiter` means exhausting the login quota also blocks legitimate registrations, and vice versa. Define distinct instances with different `windowMs` / `max` values matched to the threat model for each endpoint.
+
+**Trust proxy must be enabled when running behind a reverse proxy.** Without `app.set('trust proxy', 1)`, the rate limiter reads the proxy server's IP as the client address, meaning all users share a single counter and one user can lock out the entire service. Set `TRUST_PROXY=0` only when running Node directly without a proxy layer.
+
+---
 
 ### Frontend (React)
 

@@ -3,6 +3,7 @@ import { useAuthStore } from "../../store/authStore";
 import { useToastStore } from "../../store/useToastStore";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -103,6 +104,22 @@ const Login = () => {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[450px] bg-emerald-500/5 dark:bg-emerald-500/10 blur-[120px] rounded-full" />
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-cyan-500/5 blur-[120px] rounded-full" />
       </div>
+
+      <div className="absolute top-4 left-4 md:top-6 md:left-6 z-20">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl
+          border border-zinc-200 dark:border-white/10
+          bg-white/80 dark:bg-zinc-900/80
+          backdrop-blur-md
+          text-zinc-700 dark:text-zinc-200
+          hover:bg-zinc-100 dark:hover:bg-zinc-800
+          transition-all duration-300 shadow-md hover:shadow-lg"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+      </div>
+
       {/* Container */}
       <div className="relative z-10 min-h-screen flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-10 items-center animate-fadeIn">

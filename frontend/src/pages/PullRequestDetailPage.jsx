@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle, ChevronDown, ChevronUp, Clock, GitBranch, GitMerge, GitPullRequest, MessageSquare, Send, User, XCircle } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
-import { addPullRequestComment, fetchPullRequest, submitPullRequestReview } from '../api/pullRequestApi.js';
+import { addPullRequestComment, fetchPullRequest, mergePullRequest, submitPullRequestReview } from '../api/pullRequestApi.js';
+import { listRules } from '../api/branchProtectionApi.js';
 import { getApiUserAvatar, getApiUserName } from '../utils/apiContracts.js';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
+import BranchProtectionStatusWidget from '../components/repositories/BranchProtectionStatusWidget.jsx';
 
 const statusConfig = {
   open: { icon: <GitPullRequest className="w-4 h-4" />, label: 'Open', classes: 'bg-emerald-400/10 text-emerald-400 border border-emerald-400/20' },
@@ -73,12 +75,80 @@ export default function PullRequestDetailPage() {
   const [reviewAction, setReviewAction] = useState(null);
   const [activeTab, setActiveTab] = useState('conversation');
   const { data: pr, isLoading, isError, error } = useQuery({ queryKey: ['pull-request', id], queryFn: () => fetchPullRequest(id), enabled: Boolean(id) });
+  const repoName = pr?.repository?.name || '';
+  const repoOwnerUsername = useMemo(() => {
+    const owner = pr?.repository?.owner;
+
+    if (owner && typeof owner === 'object' && owner.username) {
+      return owner.username;
+    }
+
+    if (owner && typeof owner === 'string' && user?._id && owner === user._id) {
+      return user.username;
+    }
+
+    if (owner && typeof owner === 'string' && owner.length > 0 && pr?.repository?.ownerUsername) {
+      return pr.repository.ownerUsername;
+    }
+
+    return '';
+  }, [pr?.repository?.owner, pr?.repository?.ownerUsername, user?._id, user?.username]);
+  const isRepoOwner = useMemo(() => {
+    const owner = pr?.repository?.owner;
+    const ownerId = typeof owner === 'object' ? owner?._id || owner?.id : owner;
+
+    return Boolean(
+      user && ownerId && (
+        ownerId === user._id ||
+        ownerId === user.id ||
+        ownerId === user.username
+      )
+    );
+  }, [pr?.repository?.owner, user]);
+  const branchProtectionQuery = useQuery({
+    queryKey: ['branch-protection-rules', repoOwnerUsername, repoName],
+    queryFn: async () => {
+      try {
+        return await listRules({ username: repoOwnerUsername, reponame: repoName });
+      } catch (queryError) {
+        if (queryError?.status === 403) {
+          return [];
+        }
+
+        throw queryError;
+      }
+    },
+    enabled: Boolean(repoOwnerUsername && repoName),
+    retry: false,
+  });
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: ['pull-request', id] });
     await queryClient.invalidateQueries({ queryKey: ['pull-requests'] });
   };
   const commentMutation = useMutation({ mutationFn: () => addPullRequestComment(id, comment.trim()), onSuccess: async () => { setComment(''); await invalidate(); } });
   const reviewMutation = useMutation({ mutationFn: (action) => submitPullRequestReview(id, action), onSuccess: invalidate });
+  const mergeMutation = useMutation({
+    mutationFn: () => mergePullRequest(id),
+    onSuccess: async () => {
+      setMergeMessage('Pull request merged successfully.');
+      setMergeError('');
+      setMergeReasons([]);
+      await invalidate();
+    },
+    onError: (apiError) => {
+      setMergeMessage('');
+      setMergeError(apiError?.message || 'Unable to merge pull request.');
+      const reasons = apiError?.status === 422 && Array.isArray(apiError?.cause?.response?.data?.reasons)
+        ? apiError.cause.response.data.reasons
+        : Array.isArray(apiError?.errors)
+          ? apiError.errors.map((item) => item.message).filter(Boolean)
+          : [];
+      setMergeReasons(reasons);
+    },
+  });
+  const [mergeMessage, setMergeMessage] = useState('');
+  const [mergeError, setMergeError] = useState('');
+  const [mergeReasons, setMergeReasons] = useState([]);
 
   if (isLoading) return <div className="min-h-screen grid place-items-center bg-white dark:bg-[#06070a]"><Spinner /></div>;
   if (isError || !pr) return <div className="min-h-screen bg-white dark:bg-[#06070a] p-6"><div className="max-w-3xl mx-auto"><ErrorState message={error?.message || 'Could not load pull request.'} /></div></div>;
@@ -86,6 +156,28 @@ export default function PullRequestDetailPage() {
   const author = getApiUserName(pr.author);
   const comments = Array.isArray(pr.comments) ? pr.comments : [];
   const config = statusConfig[pr.status] || statusConfig.open;
+  const matchingRule = branchProtectionQuery.data?.find((rule) => rule.branchPattern === (pr.toBranch || pr.targetBranch)) || null;
+  const approvalReviewIds = new Set();
+  const approvalsGranted = (pr.reviews || []).reduce((count, review) => {
+    if (review.status !== 'approved') return count;
+
+    const reviewerId = review.reviewer?._id || review.reviewer || review.author?._id || review.author;
+    const reviewerKey = reviewerId ? String(reviewerId) : '';
+    const authorId = pr.author?._id || pr.author;
+
+    if (!reviewerKey || reviewerKey === String(authorId)) return count;
+    if (approvalReviewIds.has(reviewerKey)) return count;
+
+    approvalReviewIds.add(reviewerKey);
+    return count + 1;
+  }, 0);
+  const approvalsRequired = matchingRule?.requiredApprovalsCount ?? 0;
+  const approvalsOk = approvalsGranted >= approvalsRequired;
+  const statusChecksOk = matchingRule ? !matchingRule.requireStatusChecks : true;
+  const mergeAllowed = approvalsOk && statusChecksOk;
+  const canShowProtection = Boolean(matchingRule);
+  const canShowOwnerOverride = isRepoOwner && !mergeAllowed;
+  const mergeDisabled = pr.status !== 'open' || !mergeAllowed || mergeMutation.isPending;
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#06070a] text-zinc-900 dark:text-white transition-colors">
@@ -107,6 +199,16 @@ export default function PullRequestDetailPage() {
             <span className="flex items-center gap-1.5"><Clock className="w-4 h-4" />{getTimeAgo(pr.createdAt)}</span>
           </div>
         </div>
+        {canShowProtection ? (
+          <div className="mb-6 grid gap-4">
+            <BranchProtectionStatusWidget
+              rule={matchingRule}
+              approvalsGranted={approvalsGranted}
+              approvalsRequired={approvalsRequired}
+              statusChecksOk={statusChecksOk}
+            />
+          </div>
+        ) : null}
         <div className="flex border-b border-zinc-200 dark:border-white/10 mb-6">
           {[{ key: 'conversation', label: 'Conversation', icon: <MessageSquare className="w-4 h-4" /> }, { key: 'diff', label: 'Files Changed', icon: <GitBranch className="w-4 h-4" /> }].map((tab) => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-white'}`}>{tab.icon}{tab.label}</button>
@@ -135,6 +237,60 @@ export default function PullRequestDetailPage() {
                 </div>
               </div>
             )}
+            {pr.status === 'open' ? (
+              <div className="rounded-2xl border border-zinc-200 dark:border-white/10 overflow-hidden">
+                <div className="px-5 py-3 bg-zinc-50 dark:bg-white/[0.02] border-b border-zinc-200 dark:border-white/10 flex items-center gap-2">
+                  <GitMerge className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-medium">Merge</span>
+                </div>
+                <div className="px-5 py-4 grid gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => mergeMutation.mutate()}
+                      disabled={mergeDisabled}
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
+                        mergeAllowed
+                          ? 'bg-emerald-400 text-black hover:scale-[1.01]'
+                          : 'bg-zinc-200 text-zinc-500 dark:bg-white/10 dark:text-zinc-400'
+                      }`}
+                    >
+                      Merge Pull Request
+                    </button>
+
+                    {canShowOwnerOverride ? (
+                      <button
+                        type="button"
+                        onClick={() => mergeMutation.mutate()}
+                        disabled={mergeMutation.isPending}
+                        className="inline-flex items-center gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm font-semibold text-amber-500 hover:bg-amber-400/15 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Merge anyway (Owner Override)
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {mergeMessage ? (
+                    <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-500">
+                      {mergeMessage}
+                    </div>
+                  ) : null}
+
+                  {mergeError ? (
+                    <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-500">
+                      <div>{mergeError}</div>
+                      {mergeReasons.length > 0 ? (
+                        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-red-500/90">
+                          {mergeReasons.map((reason) => (
+                            <li key={reason}>{reason}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
         {activeTab === 'diff' && <div><p className="text-sm text-zinc-500 mb-4">{(pr.diff || []).length} file{(pr.diff || []).length !== 1 ? 's' : ''} changed</p>{(pr.diff || []).map((file) => <DiffChunk key={file.file} file={file} />)}</div>}

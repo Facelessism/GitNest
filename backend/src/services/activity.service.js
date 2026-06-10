@@ -31,11 +31,17 @@ const buildActivityPage = async (filter, page, limit) => {
 };
 
 export const logActivity = async (activityPayload) => {
+  if (activityPayload.repository) {
+    const repo = await Repository.findById(activityPayload.repository).select('visibility');
+    if (repo && repo.visibility === 'private') {
+      activityPayload.visibility = 'private';
+    }
+  }
   return Activity.create(activityPayload);
 };
 
 export const getGlobalFeed = async ({ page, limit } = {}) => {
-  return buildActivityPage({}, page, limit);
+  return buildActivityPage({ visibility: 'public' }, page, limit);
 };
 
 export const getUserFeed = async ({ username, page, limit } = {}) => {
@@ -52,16 +58,37 @@ export const getUserFeed = async ({ username, page, limit } = {}) => {
   return buildActivityPage({ actor: user._id }, page, limit);
 };
 
-export const getRepositoryFeed = async ({ repo, page, limit } = {}) => {
+export const getRepositoryFeed = async ({ repo, page, limit, currentUser } = {}) => {
   if (!repo) {
     throw new AppError('Repository parameter is required', 400);
   }
 
-  const repository = mongoose.Types.ObjectId.isValid(repo)
-    ? await Repository.findById(repo)
-    : await Repository.findOne({ name: repo });
+  let repository = null;
+
+  if (mongoose.Types.ObjectId.isValid(repo)) {
+    repository = await Repository.findById(repo);
+  } else {
+    // Backwards-compatible string lookup is restricted to public repos only.
+    // This prevents cross-tenant/private repo leaks when multiple repos share a name.
+    const matches = await Repository.find({ name: repo, visibility: 'public' })
+      .select('_id visibility owner')
+      .limit(2);
+
+    if (matches.length > 1) {
+      throw new AppError('Repository lookup is ambiguous. Use repository id.', 400);
+    }
+
+    repository = matches[0] || null;
+  }
 
   if (!repository) {
+    throw new AppError('Repository not found', 404);
+  }
+
+  if (
+    repository.visibility === 'private' &&
+    (!currentUser || repository.owner.toString() !== currentUser.id)
+  ) {
     throw new AppError('Repository not found', 404);
   }
 

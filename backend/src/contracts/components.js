@@ -209,6 +209,43 @@ const pullRequest = {
   required: ['title', 'status', 'sourceBranch', 'targetBranch'],
 };
 
+const indexedSymbol = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    _id: { type: 'string' },
+    repositoryId: { type: 'string' },
+    repositoryName: { type: 'string' },
+    owner: { type: 'string' },
+    filePath: { type: 'string' },
+    symbolName: { type: 'string' },
+    symbolType: { type: 'string', enum: ['function', 'class', 'export', 'import', 'route'] },
+    line: { type: 'integer', minimum: 1 },
+    exportName: { type: ['string', 'null'] },
+    metadata: { type: 'object', additionalProperties: true },
+    indexedAt: timestamp,
+  },
+  required: ['repositoryId', 'repositoryName', 'owner', 'filePath', 'symbolName', 'symbolType', 'line'],
+};
+
+const dependencyGraph = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    _id: { type: 'string' },
+    repositoryId: { type: 'string' },
+    filePath: { type: 'string' },
+    sourceSymbol: { type: 'string' },
+    sourceType: { type: 'string' },
+    targetSymbol: { type: 'string' },
+    targetType: { type: 'string' },
+    dependencyType: { type: 'string' },
+    metadata: { type: 'object', additionalProperties: true },
+    createdAt: timestamp,
+  },
+  required: ['repositoryId', 'filePath', 'sourceSymbol', 'sourceType', 'targetSymbol', 'targetType', 'dependencyType'],
+};
+
 export const components = {
   schemas: {
     SuccessEnvelope: successEnvelope({}),
@@ -223,6 +260,8 @@ export const components = {
     PullRequestComment: pullRequestComment,
     PullRequestReview: review,
     DiffFile: diffFile,
+    IndexedSymbol: indexedSymbol,
+    DependencyGraph: dependencyGraph,
   },
   securitySchemes: {
     bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -246,4 +285,6 @@ export const sharedSchemas = {
   pullRequestComment,
   diffFile,
   review,
+  indexedSymbol,
+  dependencyGraph,
 };

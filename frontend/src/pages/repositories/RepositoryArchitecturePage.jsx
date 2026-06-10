@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Activity, ArrowLeft, Search } from 'lucide-react';
+import { useAuthStore } from '../../store/authStore.js';
 import { analyzeRepo } from '../../api/architecture.api.js';
 import DependencyGraph from '../../components/architecture/DependencyGraph.jsx';
 import HotspotsPanel from '../../components/architecture/HotspotsPanel.jsx';
@@ -9,9 +10,11 @@ import PageShell from '../../components/layout/PageShell.jsx';
 
 export default function RepositoryArchitecturePage() {
   const { owner, repo } = useParams();
+  const { user } = useAuthStore();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const isOwner = user?.username?.toLowerCase() === owner?.toLowerCase();
 
   const handleAnalyze = async () => {
     setLoading(true);
@@ -54,15 +57,25 @@ export default function RepositoryArchitecturePage() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleAnalyze}
-              disabled={loading}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <Search className="h-4 w-4" />
-              {loading ? 'Analyzing...' : 'Analyze Repository'}
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              {isOwner ? (
+                <Link
+                  to={`/${owner}/${repo}/settings/branch-protection`}
+                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:border-emerald-300/40 hover:text-emerald-300"
+                >
+                  Settings
+                </Link>
+              ) : null}
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-emerald-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Search className="h-4 w-4" />
+                {loading ? 'Analyzing...' : 'Analyze Repository'}
+              </button>
+            </div>
           </div>
 
           {error ? (
