@@ -246,6 +246,76 @@ const dependencyGraph = {
   required: ['repositoryId', 'filePath', 'sourceSymbol', 'sourceType', 'targetSymbol', 'targetType', 'dependencyType'],
 };
 
+const riskScore = { type: 'string', enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] };
+
+const architectureHotspot = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    moduleName: { type: 'string' },
+    referenceCount: { type: 'integer', minimum: 0 },
+    dependentFileCount: { type: 'integer', minimum: 0 },
+    reasons: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['moduleName', 'referenceCount', 'dependentFileCount', 'reasons'],
+};
+
+const architectureModule = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    moduleName: { type: 'string' },
+    fileCount: { type: 'integer', minimum: 0 },
+    symbolCount: { type: 'integer', minimum: 0 },
+    dependencyCount: { type: 'integer', minimum: 0 },
+    dependentCount: { type: 'integer', minimum: 0 },
+    couplingLevel: { type: 'integer', minimum: 0 },
+    riskScore,
+  },
+  required: ['moduleName', 'dependencyCount', 'dependentCount', 'riskScore'],
+};
+
+const architectureAnalysis = {
+  type: 'object',
+  additionalProperties: true,
+  properties: {
+    _id: { type: 'string' },
+    repositoryId: { type: 'string' },
+    repositoryName: { type: 'string' },
+    complexityScore: { type: 'number', minimum: 0 },
+    riskScore,
+    hotspotCount: { type: 'integer', minimum: 0 },
+    circularDependencyCount: { type: 'integer', minimum: 0 },
+    criticalModuleCount: { type: 'integer', minimum: 0 },
+    summary: { type: 'string' },
+    metrics: {
+      type: 'object',
+      additionalProperties: true,
+      properties: {
+        moduleCount: { type: 'integer', minimum: 0 },
+        dependencyCount: { type: 'integer', minimum: 0 },
+        dependencyDensity: { type: 'number', minimum: 0 },
+        modules: { type: 'array', items: architectureModule },
+        hotspots: { type: 'array', items: architectureHotspot },
+        circularDependencies: { type: 'array', items: { type: 'array', items: { type: 'string' } } },
+      },
+    },
+    generatedAt: timestamp,
+  },
+  required: [
+    'repositoryId',
+    'repositoryName',
+    'complexityScore',
+    'riskScore',
+    'hotspotCount',
+    'circularDependencyCount',
+    'criticalModuleCount',
+    'summary',
+    'metrics',
+    'generatedAt',
+  ],
+};
+
 export const components = {
   schemas: {
     SuccessEnvelope: successEnvelope({}),
@@ -262,6 +332,9 @@ export const components = {
     DiffFile: diffFile,
     IndexedSymbol: indexedSymbol,
     DependencyGraph: dependencyGraph,
+    ArchitectureAnalysis: architectureAnalysis,
+    ArchitectureHotspot: architectureHotspot,
+    ArchitectureModule: architectureModule,
   },
   securitySchemes: {
     bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -287,4 +360,8 @@ export const sharedSchemas = {
   review,
   indexedSymbol,
   dependencyGraph,
+  architectureAnalysis,
+  architectureHotspot,
+  architectureModule,
+  riskScore,
 };

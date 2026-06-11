@@ -6,6 +6,7 @@ import { crawlRepositoryFiles } from '../security/fileCrawler.js';
 import IndexedSymbol from '../models/IndexedSymbol.model.js';
 import { extractSymbolsFromFiles } from './symbolExtractor.js';
 import { DependencyGraphBuilder, extractDependencyEdgesFromFiles } from './dependencyGraphBuilder.service.js';
+import { ArchitectureMapping } from './architectureMapping.service.js';
 
 export const REPOSITORY_INDEX_TYPE = 'REPOSITORY_INDEX';
 
@@ -68,6 +69,22 @@ export const buildRepositoryIndexSteps = () => [
         session,
       });
       return { dependencyEdgeCount: edgeCount, dependencyEdges: [], symbols: [] };
+    },
+  },
+  {
+    name: 'replace_architecture_analysis',
+    execute: async (context, session) => {
+      const { repositoryId, repositoryName } = context;
+      const analysis = await ArchitectureMapping.generateAndPersist({
+        repositoryId,
+        repositoryName,
+        session,
+      });
+
+      return {
+        architectureRiskScore: analysis.riskScore,
+        architectureGeneratedAt: analysis.generatedAt,
+      };
     },
   },
 ];
