@@ -20,6 +20,7 @@ import {
 import { Link } from 'react-router-dom';
 import logo from "../assets/logo.png";
 import { motion, AnimatePresence } from "framer-motion";
+import FAQ from "../components/FAQ/FAQ";
 import "../App.css";
 
 
@@ -80,6 +81,7 @@ export default function GitNestHomepage() {
     const navLinks = [
         { name: "Home", href: "#home" },
         { name: "Features", href: "#features" },
+        { name: "FAQ", href: "#faq" },
         { name: "Contributors", href: "#contributors" },
     ];
 
@@ -827,6 +829,10 @@ export default function GitNestHomepage() {
                     </div>
                 </div>
             </motion.section >
+
+            {/* FAQ SECTION */}
+            <FAQ />
+
             {/* Contributor CTA */}
             < motion.section
                 variants={scrollReveal}
