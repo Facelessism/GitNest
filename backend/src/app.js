@@ -129,6 +129,7 @@ const createApp = () => {
   app.use('/api/v1/repositories', branchRoutes);
   app.use('/api/v1/repos', gitRoutes);
   app.use('/api/v1/repositories', codeIntelligenceRoutes);
+  app.use('/api/v1/repositories', architectureRoutes);
   app.use('/api/v1/search', searchRoutes);
   app.use('/api/v1/auth', githubAuthRoutes);
   app.use('/api/v1/repositories', cloneRoutes);

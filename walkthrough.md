@@ -1,6 +1,6 @@
-# Repository Indexing, Dependency Graphs & Impact Analysis
+# Repository Indexing, Dependency Graphs, Impact Analysis & Architecture Mapping
 
-GitNest now includes a lightweight in-process repository indexing pipeline for JS/TS code intelligence plus dependency graph impact analysis.
+GitNest now includes a lightweight in-process repository indexing pipeline for JS/TS code intelligence, dependency graph impact analysis, and architecture risk mapping.
 
 ## What changed
 
@@ -11,6 +11,9 @@ GitNest now includes a lightweight in-process repository indexing pipeline for J
 - `DependencyGraph` stores module, package, export, route handler, and service/controller reference edges.
 - `DependencyGraphBuilder` rebuilds edges from the same crawl/extract pass and replaces stale edges after indexing.
 - `ImpactAnalysis` uses simple in-memory BFS over stored edges for direct dependencies, dependents, affected symbols/files, and depth counts.
+- `ArchitectureAnalysis` persists a generated architecture snapshot after dependency graph generation.
+- `ArchitectureMapping` derives module relationships, entry points, service boundaries, dependency density, hotspots, and bounded circular dependencies from `IndexedSymbol` and `DependencyGraph`.
+- `RiskScoring` returns deterministic `LOW`, `MEDIUM`, `HIGH`, or `CRITICAL` risk levels from dependency count, coupling, cycles, and hotspot participation.
 - REST APIs were added under `/api/v1/repositories/:username/:reponame`.
 
 ## APIs
@@ -23,11 +26,16 @@ GitNest now includes a lightweight in-process repository indexing pipeline for J
 - `GET /dependencies` lists graph edges with optional `dependencyType`, `file`, and `symbol` filters.
 - `GET /dependencies/impact?file=src/app.js` or `?symbol=handler` returns impact analysis.
 - `GET /dependencies/symbol/:symbolName` returns dependencies and dependents for one symbol.
+- `GET /architecture` returns the latest persisted architecture analysis.
+- `GET /architecture/hotspots` returns hotspot metadata.
+- `GET /architecture/risk` returns repository risk metadata.
+- `GET /architecture/module/:moduleName` returns module risk and relationships.
 
 ## Verification
 
 ```bash
 cd backend
+npm test -- architecture.test.js
 npm test -- codeIntelligence.test.js
 npm test
 npm run test:contracts

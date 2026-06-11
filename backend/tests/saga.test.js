@@ -40,6 +40,14 @@ jest.unstable_mockModule('../src/models/SagaState.model.js', () => ({
       if (!stored) return null;
       return makeSagaDoc(stored);
     }),
+    findOneAndUpdate = jest.fn(async ({ sagaId }, update) => {
+      const stored = mockStates.get(sagaId);
+      if (stored && update.$set) {
+        Object.assign(stored, update.$set);
+        mockStates.set(sagaId, stored);
+      }
+      return stored ? makeSagaDoc(stored) : null;
+    }),
     create: jest.fn(async (data) => {
       const doc = makeSagaDoc(data);
       mockStates.set(doc.sagaId, { ...doc });
@@ -87,6 +95,14 @@ describe('Saga Orchestrator Framework', () => {
       const stored = mockStates.get(sagaId);
       if (!stored) return null;
       return makeSagaDoc(stored);
+    });
+    SagaState.findOneAndUpdate.mockImplementation(async ({ sagaId }, update) => {
+      const stored = mockStates.get(sagaId);
+      if (stored && update.$set) {
+        Object.assign(stored, update.$set);
+        mockStates.set(sagaId, stored);
+      }
+      return stored ? makeSagaDoc(stored) : null;
     });
     SagaState.create.mockImplementation(async (data) => {
       const doc = makeSagaDoc(data);
