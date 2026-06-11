@@ -14,7 +14,8 @@ import {
     Shield,
     Menu, 
     X,
-    Copy 
+    Copy,
+    Star
 } from "lucide-react";
 import { Link } from 'react-router-dom';
 import logo from "../assets/logo.png";
@@ -53,6 +54,7 @@ export default function GitNestHomepage() {
     });
     const { isDarkMode, toggleTheme } = useThemeStore();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [marqueePaused, setMarqueePaused] = useState(false);
 
     const marqueeItems = [
         "MERN Stack",
@@ -86,6 +88,33 @@ export default function GitNestHomepage() {
         { name: "Pull Requests", path: "/login" },
         { name: "AI Workflows", path: "/docs" },
         { name: "Discussions", path: "/login" },
+    ];
+
+    const userExperienceCards = [
+        {
+            name: "Shwetu",
+            quote: "The onboarding feels smooth and trustworthy — I knew exactly where to start.",
+            stars: 5,
+            accent: "from-[#00dc82]/20 to-[#4fd1ff]/20",
+        },
+        {
+            name: "Randhir Kumar Raj",
+            quote: "The dashboard gives instant confidence, and the contributor flow feels polished.",
+            stars: 5,
+            accent: "from-[#f59e0b]/20 to-[#22d3ee]/20",
+        },
+        {
+            name: "Amit Singh",
+            quote: "I trusted the experience from the first click — the design and feedback are excellent.",
+            stars: 4,
+            accent: "from-[#a78bfa]/20 to-[#38bdf8]/20",
+        },
+        {
+            name: "Pratyusha",
+            quote: "Fast, clear, and community-focused — it makes contribution feel welcoming.",
+            stars: 5,
+            accent: "from-[#22c55e]/20 to-[#2dd4bf]/20",
+        },
     ];
 
     const scrollReveal = {
@@ -898,6 +927,64 @@ export default function GitNestHomepage() {
 
                         </div>
 
+                        <div className="mb-10 flex flex-col gap-4 text-left">
+
+                            <div className="rounded-[28px] border border-zinc-200/80 dark:border-white/10 bg-white/80 dark:bg-white/[0.03] p-4 shadow-[0_12px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+                                <div className="flex items-center justify-between gap-3 mb-3">
+                                    <div>
+                                        <p className="text-[12px] uppercase tracking-[0.25em] text-zinc-500 dark:text-zinc-400">User experience</p>
+                                        <h3 className="text-[18px] md:text-[22px] font-black tracking-[-0.04em] text-zinc-900 dark:text-white">Trusted by contributors who love the flow</h3>
+                                    </div>
+                                    <div className="rounded-full border border-[#00dc82]/20 bg-[#00dc82]/10 px-3 py-1 text-[12px] font-semibold text-[#047857] dark:text-[#86efac]">Live trust signals</div>
+                                </div>
+
+                                <div
+                                    className="relative overflow-hidden rounded-[24px] border border-zinc-200/80 dark:border-white/10 bg-gradient-to-r from-white via-[#f5fff9] to-white dark:from-[#0b131d] dark:via-[#0f1723] dark:to-[#0b131d] p-3"
+                                    onMouseEnter={() => setMarqueePaused(true)}
+                                    onMouseLeave={() => setMarqueePaused(false)}
+                                    onFocus={() => setMarqueePaused(true)}
+                                    onBlur={() => setMarqueePaused(false)}
+                                >
+                                    <div
+                                        className="flex w-max gap-4 py-1 animate-marquee-right"
+                                        style={{ animationPlayState: marqueePaused ? 'paused' : 'running' }}
+                                    >
+                                        {[...userExperienceCards, ...userExperienceCards].map((item, i) => {
+                                            const initials = `${item.name.split(' ')[0][0]}${item.name.split(' ').at(-1)[0]}`.toUpperCase();
+
+                                            return (
+                                                <article
+                                                    key={`${item.name}-${i}`}
+                                                    className="w-[280px] rounded-[24px] border border-zinc-200/80 dark:border-white/10 bg-white/90 dark:bg-[#111827]/90 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)]"
+                                                >
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${item.accent} border border-zinc-200/80 dark:border-white/10 text-sm font-black text-zinc-900 dark:text-white`}>
+                                                            {initials}
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="text-[15px] font-black text-zinc-900 dark:text-white">{item.name}</h4>
+                                                            <p className="text-[12px] text-zinc-500 dark:text-zinc-400">Community contributor</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <p className="text-[14px] leading-6 text-zinc-700 dark:text-zinc-300">“{item.quote}”</p>
+
+                                                    <div className="mt-4 flex items-center justify-between">
+                                                        <div className="flex items-center gap-1 text-[#f59e0b]">
+                                                            {Array.from({ length: item.stars }).map((_, starIndex) => (
+                                                                <Star key={`${item.name}-${starIndex}`} className="h-4 w-4 fill-current" />
+                                                            ))}
+                                                        </div>
+                                                        <span className="rounded-full bg-[#00dc82]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#047857] dark:text-[#86efac]">{item.stars}.0/5</span>
+                                                    </div>
+                                                </article>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* TOP BADGE */}
                         <motion.div
                             initial={{ opacity: 0, y: -20 }}
@@ -906,7 +993,6 @@ export default function GitNestHomepage() {
                                 duration: 0.5,
                                 delay: 0.1,
                             }} className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-[#00dc82]/20 bg-white/70 dark:bg-white/[0.03] backdrop-blur-xl shadow-[0_10px_30px_rgba(0,220,130,0.06)] mb-10">
-
                             <Users className="w-5 h-5 text-[#00dc82]" />
 
                             <span className="text-[14px] font-bold tracking-[0.22em] uppercase bg-gradient-to-r from-[#00dc82] to-[#4fd1ff] bg-clip-text text-transparent">
