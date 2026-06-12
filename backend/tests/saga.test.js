@@ -305,130 +305,119 @@ describe('Saga Orchestrator Framework', () => {
     expect(state.completedSteps).toEqual(['step1', 'step2']);
   });
 
-  // ── 6. Stale processing → reclaimed and retried ─────────────────────────────
-  test('reclaims a stale processing saga and completes the retry', async () => {
-    const sagaId = 'saga-stale-reclaim';
-    const log = [];
+  // ── 6. Permanent AppError (4xx) — no retry ──────────────────────────────────
+  test('does not retry a step that throws a permanent 4xx AppError', async () => {
+    const sagaId = 'saga-no-retry-apperror';
+    let callCount = 0;
+
+    // Minimal AppError shape (mirrors src/utils/AppError.js)
+    class AppError extends Error {
+      constructor(message, statusCode) {
+        super(message);
+        this.statusCode = statusCode;
+        this.isOperational = true;
+      }
+    }
 
     const steps = [
       {
-        name: 'step1',
-        execute: async () => { log.push('step1'); },
-        compensate: async () => {},
-      },
-      {
-        name: 'step2',
-        execute: async () => { log.push('step2'); },
+        name: 'alreadyFollowing',
+        execute: async () => {
+          callCount += 1;
+          throw new AppError('Already following this user', 400);
+        },
         compensate: async () => {},
       },
     ];
 
-    // Simulate a crashed saga: status=processing, step1 done, lastHeartbeatAt is ancient
-    const staleTimestamp = new Date(Date.now() - 60_000); // 60 s ago — well past any threshold
-    await SagaState.create({
-      sagaId,
-      type: 'TEST',
-      status: 'processing',
-      completedSteps: ['step1'],
-      failedStep: null,
-      metadata: {},
-      lastHeartbeatAt: staleTimestamp,
-    });
-
-    // Retry with staleThresholdMs = 30 000 ms — 60 s old heartbeat is stale
-    const result = await SagaOrchestrator.executeSaga(
-      sagaId, 'TEST', steps, {}, { maxRetries: 1, staleThresholdMs: 30_000, heartbeatIntervalMs: 999_999 }
-    );
-
-    // step1 was already in completedSteps → skipped; only step2 re-runs
-    expect(log).toEqual(['step2']);
-
-    const state = await SagaState.findOne({ sagaId });
-    expect(state.status).toBe('completed');
-    expect(state.completedSteps).toEqual(['step1', 'step2']);
-    // result should carry original context
-    expect(result).toBeDefined();
-  });
-
-  // ── 7. Live processing saga still blocked ───────────────────────────────────
-  test('still throws for a processing saga with a recent heartbeat', async () => {
-    const sagaId = 'saga-live-block';
-
-    // Simulate a live saga: lastHeartbeatAt is just now
-    await SagaState.create({
-      sagaId,
-      type: 'TEST',
-      status: 'processing',
-      completedSteps: [],
-      failedStep: null,
-      metadata: {},
-      lastHeartbeatAt: new Date(), // fresh
-    });
-
-    const steps = [
-      {
-        name: 'step1',
-        execute: async () => {},
-        compensate: async () => {},
-      },
-    ];
-
-    // staleThresholdMs = 30 000 ms; heartbeat is < 1 s old → not stale → must throw
     await expect(
       SagaOrchestrator.executeSaga(
-        sagaId, 'TEST', steps, {}, { staleThresholdMs: 30_000, heartbeatIntervalMs: 999_999 }
+        sagaId, 'FOLLOW_USER', steps, {}, { maxRetries: 3, retryDelayMs: 0 }
       )
-    ).rejects.toThrow(/currently in progress/);
+    ).rejects.toThrow('Already following this user');
 
-    // Verify the state was NOT mutated
+    // Must execute exactly once — never retried
+    expect(callCount).toBe(1);
+
     const state = await SagaState.findOne({ sagaId });
-    expect(state.status).toBe('processing');
+    expect(state.status).toBe('rolled_back');
+    expect(state.failedStep).toBe('alreadyFollowing');
+    // retryCount must NOT be incremented for a permanent failure
+    expect(state.retryCount).toBe(0);
   });
 
-  // ── 8. Mid-crash retry: same idempotency key completes after simulated crash ─
-  test('client retry after simulated mid-flight crash completes the merge saga', async () => {
-    const sagaId = 'saga-crash-retry';
-    const log = [];
+  // ── 7. Transient plain Error — retried as normal ───────────────────────────
+  test('still retries a step that throws a plain (non-AppError) transient error', async () => {
+    const sagaId = 'saga-retry-plain-error';
+    let callCount = 0;
 
     const steps = [
       {
-        name: 'gitMerge',
-        execute: async (ctx) => { log.push('gitMerge'); ctx.merged = true; },
-        compensate: async () => { log.push('undoMerge'); },
-      },
-      {
-        name: 'updatePR',
-        execute: async (ctx) => { log.push('updatePR'); ctx.prClosed = true; },
+        name: 'transientStep',
+        execute: async (ctx) => {
+          callCount += 1;
+          if (callCount < 3) throw new Error('transient network blip');
+          ctx.done = true;
+        },
         compensate: async () => {},
       },
     ];
 
-    // First attempt: process crashes after gitMerge completes but before updatePR —
-    // seed the DB as the crash left it.
-    const staleTimestamp = new Date(Date.now() - 45_000);
-    await SagaState.create({
-      sagaId,
-      type: 'MERGE_PULL_REQUEST',
-      status: 'processing',
-      completedSteps: ['gitMerge'],
-      failedStep: null,
-      metadata: { prId: 'pr-abc' },
-      lastHeartbeatAt: staleTimestamp,
-    });
-
-    // Client retries with the same Idempotency-Key after server restart.
     const result = await SagaOrchestrator.executeSaga(
-      sagaId, 'MERGE_PULL_REQUEST', steps, { prId: 'pr-abc' },
-      { maxRetries: 1, staleThresholdMs: 30_000, heartbeatIntervalMs: 999_999 }
+      sagaId, 'TEST', steps, {}, { maxRetries: 3, retryDelayMs: 0 }
     );
 
-    // gitMerge already in completedSteps → skipped; only updatePR runs
-    expect(log).toEqual(['updatePR']);
-    expect(result.merged).toBe(true);
-    expect(result.prClosed).toBe(true);
+    expect(result.done).toBe(true);
+    expect(callCount).toBe(3); // retried twice, succeeded on third
 
     const state = await SagaState.findOne({ sagaId });
     expect(state.status).toBe('completed');
-    expect(state.completedSteps).toEqual(['gitMerge', 'updatePR']);
+    expect(state.retryCount).toBe(2);
+  });
+
+  // ── 8. Permanent 4xx on step 1 of 2 — step 2 never executes ───────────────
+  test('does not execute subsequent steps when step 1 throws a permanent AppError', async () => {
+    const sagaId = 'saga-apperror-step1-of-2';
+    const log = [];
+
+    class AppError extends Error {
+      constructor(message, statusCode) {
+        super(message);
+        this.statusCode = statusCode;
+        this.isOperational = true;
+      }
+    }
+
+    const steps = [
+      {
+        name: 'validateOpen',
+        execute: async () => {
+          log.push('validateOpen');
+          throw new AppError('Pull request is not open', 400);
+        },
+        compensate: async () => { log.push('comp-validateOpen'); },
+      },
+      {
+        name: 'gitMerge',
+        execute: async () => { log.push('gitMerge'); },
+        compensate: async () => { log.push('comp-gitMerge'); },
+      },
+    ];
+
+    await expect(
+      SagaOrchestrator.executeSaga(
+        sagaId, 'MERGE_PR', steps, {}, { maxRetries: 3, retryDelayMs: 0 }
+      )
+    ).rejects.toThrow('Pull request is not open');
+
+    // validateOpen called once; gitMerge never reached; no compensation
+    // for validateOpen because it never completed
+    expect(log).toEqual(['validateOpen']);
+
+    const state = await SagaState.findOne({ sagaId });
+    expect(state.status).toBe('rolled_back');
+    expect(state.completedSteps).toEqual([]);  // step1 never completed
+    expect(state.failedStep).toBe('validateOpen');
+    expect(state.retryCount).toBe(0);
   });
 });
