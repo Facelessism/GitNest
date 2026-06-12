@@ -1,6 +1,13 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
 import { optionalAuth } from '../middleware/optionalAuth.js';
+import validate from '../middleware/validate.js';
+import {
+  fetchBranchesValidator,
+  createBranchValidator,
+  checkoutBranchValidator,
+  deleteBranchValidator,
+} from '../validators/branch.validators.js';
 import {
   fetchBranches,
   createRepositoryBranch,
@@ -14,6 +21,7 @@ const router = express.Router();
 router.get(
   '/:username/:repoName/branches',
   optionalAuth,
+  validate(fetchBranchesValidator),
   fetchBranches
 );
 
@@ -21,18 +29,21 @@ router.get(
 router.post(
   '/:username/:repoName/branches',
   protect,
+  validate(createBranchValidator),
   createRepositoryBranch
 );
 
 router.post(
   '/:username/:repoName/branches/checkout',
   protect,
+  validate(checkoutBranchValidator),
   checkoutRepositoryBranch
 );
 
 router.delete(
   '/:username/:repoName/branches/:branchName',
   protect,
+  validate(deleteBranchValidator),
   deleteRepositoryBranch
 );
 
